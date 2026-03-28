@@ -107,7 +107,10 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
     </div>
     <div class="sync-status">
       <div class="sync-dot" id="sync-dot" title="Sync-Status"></div>
-      <span id="sync-label"></span>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">
+        <span id="sync-label"></span>
+        <span style="font-size:10px;color:#ccc" id="version-label"></span>
+      </div>
     </div>
   </div>
 </div>
@@ -153,8 +156,9 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
         <label class="form-label">Gerichtname</label>
         <input id="f-name" type="text" placeholder="z.B. Spaghetti Bolognese" style="margin-bottom:16px" />
         <label class="form-label">Ordner</label>
-        <input id="f-folder" type="text" list="folder-datalist" placeholder="Ordner (optional, z.B. Pasta)" style="margin-bottom:16px" autocomplete="off" />
-        <datalist id="folder-datalist"></datalist>
+        <select id="f-folder-select" onchange="onFolderSelectChange()" style="margin-bottom:8px"></select>
+        <input id="f-folder-new" type="text" placeholder="Neuer Ordnername …" style="display:none;margin-bottom:16px" autocomplete="off" />
+        <div style="margin-bottom:8px"></div>
         <label class="form-label">Zutaten</label>
         <div class="col-header"><span>Menge</span><span>Einheit</span><span>Bezeichnung</span><span></span></div>
         <div class="ing-list" id="ing-list"></div>
@@ -175,6 +179,9 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 
 <script>
+// ── Version ───────────────────────────────────────────────────────────────────
+const APP_VERSION = 'v1.3.0';
+
 // ── Firebase Config ────────────────────────────────────────────────────────────
 // HINWEIS: Diese Werte werden nach Firebase-Einrichtung eingetragen
 const FIREBASE_CONFIG = {
@@ -214,7 +221,7 @@ function setSyncStatus(status) {
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const UNITS_LIST = ['','g','kg','ml','l','EL','TL','Dose','Stück','Pck.','Bund','Zehe','Scheibe','Stange','Tasse','Becher','Prise'];
+const UNITS_LIST = ['','g','kg','ml','l','EL','TL','Dose','Glas','Stück','Pck.','Bund','Zehe','Scheibe','Stange','Tasse','Becher','Prise'];
 const CATEGORIES = [
   { name:"Obst & Gemüse", keywords:["zwiebel","knoblauch","karotte","kartoffel","tomate","zucchini","paprika","sellerie","lauch","salat","spinat","brokkoli","gurke","aubergine","avocado","zitrone","limette","apfel","birne","banane","erdbeere","petersilie","koriander","basilikum","rosmarin","thymian","minze","ingwer","fenchel","erbse","champignon","pilz","kräuter","kirschtomaten"] },
   { name:"Fleisch & Fisch", keywords:["hackfleisch","hähnchen","hühner","hähnchenbrustfilet","rind","schwein","lamm","speck","wurst","lachs","thunfisch","garnele","fisch","steak","schnitzel","filet","pute","ente","salami","schinken","lachsfilet"] },
@@ -373,13 +380,42 @@ function getFolderList(){
   const set=new Set(meals.map(m=>m.folder||'').filter(Boolean));
   return [...set].sort((a,b)=>a.localeCompare(b,'de'));
 }
-function updateFolderDatalist(){
-  const dl=document.getElementById('folder-datalist');
-  if(!dl)return;
-  dl.innerHTML=getFolderList().map(f=>`<option value="${f}"></option>`).join('');
+function updateFolderSelect(currentFolder){
+  const sel=document.getElementById('f-folder-select');
+  if(!sel)return;
+  const folders=getFolderList();
+  const inList=folders.includes(currentFolder);
+  sel.innerHTML=`<option value="">Kein Ordner</option>`
+    +folders.map(f=>`<option value="${f}">${f}</option>`).join('')
+    +`<option value="__new__">＋ Neuer Ordner …</option>`;
+  if(currentFolder&&inList){
+    sel.value=currentFolder;
+    document.getElementById('f-folder-new').style.display='none';
+  } else if(currentFolder&&!inList){
+    // Folder not in list yet (e.g. existing meal with unique folder) — show as new
+    sel.value='__new__';
+    document.getElementById('f-folder-new').value=currentFolder;
+    document.getElementById('f-folder-new').style.display='';
+  } else {
+    sel.value='';
+    document.getElementById('f-folder-new').style.display='none';
+  }
+}
+function onFolderSelectChange(){
+  const isNew=document.getElementById('f-folder-select').value==='__new__';
+  const inp=document.getElementById('f-folder-new');
+  inp.style.display=isNew?'':'none';
+  if(isNew)setTimeout(()=>inp.focus(),50);
+}
+function getFolderValue(){
+  const sel=document.getElementById('f-folder-select');
+  if(!sel)return'';
+  if(sel.value==='__new__')return(document.getElementById('f-folder-new').value||'').trim();
+  return sel.value;
 }
 function toggleFolder(name){
-  collapsedFolders[name]=!collapsedFolders[name];
+  // undefined/true = collapsed (default), false = open
+  collapsedFolders[name] = (collapsedFolders[name] === false) ? true : false;
   renderMealGrid();
 }
 function mealCardHtml(m){
@@ -419,7 +455,7 @@ function renderMealGrid(){
         // Ungrouped meals always visible at bottom, no header
         html+=`<div class="no-folder-grid">${folderMeals.map(mealCardHtml).join('')}</div>`;
       } else {
-        const collapsed=!!collapsedFolders[key];
+        const collapsed=(collapsedFolders[key] !== false); // default: collapsed
         const safeKey=key.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
         html+=`<div class="folder-section">
           <div class="folder-header" onclick="toggleFolder('${safeKey}')">
@@ -539,16 +575,15 @@ function removeIngRow(i){formIngredients.splice(i,1);renderIngList();}
 
 function showRecipeForm(mealId){
   editingMealId=mealId||null;
-  updateFolderDatalist();
   if(mealId){
     const m=meals.find(x=>x.id===mealId);
     document.getElementById('f-name').value=m.name;
-    document.getElementById('f-folder').value=m.folder||'';
+    updateFolderSelect(m.folder||'');
     formIngredients=m.ingredients.map(x=>({...x}));
     document.getElementById('form-title').textContent='Rezept bearbeiten';
   } else {
     document.getElementById('f-name').value='';
-    document.getElementById('f-folder').value='';
+    updateFolderSelect('');
     formIngredients=[{amt:'',unit:'',name:''}];
     document.getElementById('form-title').textContent='Neues Rezept';
   }
@@ -561,7 +596,7 @@ function saveRecipe(){
   if(!name){alert('Bitte einen Gerichtnamen eingeben.');return;}
   const ings=formIngredients.filter(i=>i.name.trim());
   if(!ings.length){alert('Bitte mindestens eine Zutat eingeben.');return;}
-  const folder=document.getElementById('f-folder').value.trim();
+  const folder=getFolderValue();
   const cleanIngs=ings.map(i=>({amt:i.amt.trim(),unit:i.unit.trim(),name:i.name.trim()}));
   if(editingMealId){const idx=meals.findIndex(m=>m.id===editingMealId);if(idx>=0)meals[idx]={id:editingMealId,name,folder,ingredients:cleanIngs};}
   else{meals.push({id:nextId++,name,folder,ingredients:cleanIngs});}
@@ -593,6 +628,7 @@ if('serviceWorker' in navigator) {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+document.getElementById('version-label').textContent = APP_VERSION;
 renderMealGrid();
 renderPlanned();
 updateBadge();
