@@ -14,8 +14,13 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; min-height: 100vh; }
 .app-header { background: white; border-bottom: 0.5px solid rgba(0,0,0,0.12); padding: 16px 20px; position: sticky; top: 0; z-index: 100; }
+.app-header-row { display: flex; justify-content: space-between; align-items: center; }
 .app-header h1 { font-size: 20px; font-weight: 600; color: #1a1a1a; }
 .app-header p { font-size: 13px; color: #888; margin-top: 2px; }
+.sync-status { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #aaa; flex-shrink: 0; }
+.sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; transition: background 0.4s; flex-shrink: 0; }
+.sync-dot.online { background: #1D9E75; }
+.sync-dot.syncing { background: #f39c12; }
 .tab-bar { display: flex; background: white; border-bottom: 0.5px solid rgba(0,0,0,0.12); overflow-x: auto; }
 .tab { padding: 12px 20px; font-size: 14px; cursor: pointer; color: #888; border-bottom: 2px solid transparent; white-space: nowrap; background: none; border-top: none; border-left: none; border-right: none; font-family: inherit; transition: color 0.15s; }
 .tab.active { color: #1D9E75; border-bottom-color: #1D9E75; font-weight: 500; }
@@ -81,14 +86,22 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 .confirm-text { font-size: 13px; color: #666; flex: 1; min-width: 160px; }
 .divider { border: none; border-top: 0.5px solid rgba(0,0,0,0.1); margin: 16px 0; }
 .planned-badge { display: inline-block; background: #E1F5EE; color: #085041; border-radius: 10px; font-size: 11px; padding: 2px 8px; margin-left: 6px; font-weight: 500; }
-.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
 .toast.show { opacity: 1; }
 </style>
 </head>
 <body>
 <div class="app-header">
-  <h1>Mahlzeiten-Planer</h1>
-  <p>Wochenplanung &amp; Einkaufsliste</p>
+  <div class="app-header-row">
+    <div>
+      <h1>Mahlzeiten-Planer</h1>
+      <p>Wochenplanung &amp; Einkaufsliste</p>
+    </div>
+    <div class="sync-status">
+      <div class="sync-dot" id="sync-dot" title="Sync-Status"></div>
+      <span id="sync-label"></span>
+    </div>
+  </div>
 </div>
 
 <div class="tab-bar">
@@ -146,7 +159,50 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <div class="toast" id="toast"></div>
 
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
 <script>
+// ── Firebase Config ────────────────────────────────────────────────────────────
+// HINWEIS: Diese Werte werden nach Firebase-Einrichtung eingetragen
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyANJuzA0D7pOVl1uwcWR8KjVM_aAlZu3ZA",
+  authDomain: "mahlzeiten-planer.firebaseapp.com",
+  databaseURL: "https://mahlzeiten-planer-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "mahlzeiten-planer",
+  storageBucket: "mahlzeiten-planer.firebasestorage.app",
+  messagingSenderId: "935124797965",
+  appId: "1:935124797965:web:0b7b773b0da4173876e344"
+};
+
+// ── Firebase Init ──────────────────────────────────────────────────────────────
+let db = null;
+const FIREBASE_READY = !Object.values(FIREBASE_CONFIG).some(v => v.startsWith('FIREBASE_'));
+if (FIREBASE_READY) {
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+  } catch(e) {
+    console.warn('Firebase init failed, offline mode:', e);
+  }
+}
+
+// ── Sync State ────────────────────────────────────────────────────────────────
+let _localWrite = false;
+let _localWriteTimer = null;
+
+function setSyncStatus(status) {
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  if (!dot) return;
+  dot.className = 'sync-dot';
+  if (status === 'online')       { dot.classList.add('online'); lbl.textContent = 'Synchron'; }
+  else if (status === 'syncing') { dot.classList.add('syncing'); lbl.textContent = 'Speichern…'; }
+  else                           { lbl.textContent = 'Offline'; }
+}
+
+// ── Constants ─────────────────────────────────────────────────────────────────
 const UNITS_LIST = ['','g','kg','ml','l','EL','TL','Dose','Stück','Pck.','Bund','Zehe','Scheibe','Stange','Tasse','Becher','Prise'];
 const CATEGORIES = [
   { name:"Obst & Gemüse", keywords:["zwiebel","knoblauch","karotte","kartoffel","tomate","zucchini","paprika","sellerie","lauch","salat","spinat","brokkoli","gurke","aubergine","avocado","zitrone","limette","apfel","birne","banane","erdbeere","petersilie","koriander","basilikum","rosmarin","thymian","minze","ingwer","fenchel","erbse","champignon","pilz","kräuter","kirschtomaten"] },
@@ -178,21 +234,91 @@ const LS = {
   load(key, def)  { try { const v=localStorage.getItem('mp_'+key); return v!=null?JSON.parse(v):def; } catch(e) { return def; } }
 };
 
-function saveState() {
-  LS.save('meals', meals);
-  LS.save('currentList', currentList);
-  LS.save('plannedMeals', plannedMeals);
-  LS.save('nextId', nextId);
-  LS.save('nextItemId', nextItemId);
-}
-
-// ── State (loaded from localStorage or defaults) ──────────────────────────────
+// ── State (from localStorage or defaults) ─────────────────────────────────────
 let meals         = LS.load('meals', DEFAULT_MEALS);
 let currentList   = LS.load('currentList', []);
 let plannedMeals  = LS.load('plannedMeals', []);
 let nextId        = LS.load('nextId', 7);
 let nextItemId    = LS.load('nextItemId', 1000);
 let selected={}, editingIdx=null, editingMealId=null, confirmingId=null, formIngredients=[];
+
+// ── Save & Sync ───────────────────────────────────────────────────────────────
+function saveState() {
+  // 1. LocalStorage (offline cache)
+  LS.save('meals', meals);
+  LS.save('currentList', currentList);
+  LS.save('plannedMeals', plannedMeals);
+  LS.save('nextId', nextId);
+  LS.save('nextItemId', nextItemId);
+  // 2. Firebase (sync to other devices)
+  if (db) {
+    setSyncStatus('syncing');
+    _localWrite = true;
+    clearTimeout(_localWriteTimer);
+    db.ref('household').set({ meals, currentList, plannedMeals, nextId, nextItemId })
+      .then(() => {
+        setSyncStatus('online');
+        _localWriteTimer = setTimeout(() => { _localWrite = false; }, 2000);
+      })
+      .catch(() => {
+        setSyncStatus('');
+        _localWrite = false;
+      });
+  }
+}
+
+function renderAll() {
+  renderMealGrid();
+  renderPlanned();
+  renderShoppingList();
+  updateBadge();
+}
+
+// ── Firebase Sync Listener ────────────────────────────────────────────────────
+function initSync() {
+  if (!db) {
+    setSyncStatus('');
+    return;
+  }
+
+  // Connection indicator
+  db.ref('.info/connected').on('value', snap => {
+    if (!_localWrite) setSyncStatus(snap.val() ? 'online' : '');
+  });
+
+  // Listen for changes from other devices
+  db.ref('household').on('value', snapshot => {
+    // Skip echo of our own writes
+    if (_localWrite) return;
+
+    const data = snapshot.val();
+    if (!data) {
+      // First launch: push local state to Firebase
+      saveState();
+      return;
+    }
+
+    // Apply remote state
+    meals        = data.meals        || DEFAULT_MEALS;
+    currentList  = data.currentList  || [];
+    plannedMeals = data.plannedMeals || [];
+    nextId       = data.nextId       || 7;
+    nextItemId   = data.nextItemId   || 1000;
+
+    // Update local cache
+    LS.save('meals', meals);
+    LS.save('currentList', currentList);
+    LS.save('plannedMeals', plannedMeals);
+    LS.save('nextId', nextId);
+    LS.save('nextItemId', nextItemId);
+
+    // Re-render UI (only if not in the middle of editing)
+    if (editingIdx === null && editingMealId === null) {
+      renderAll();
+      showToast('Aktualisiert ✓');
+    }
+  });
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function categorize(name) {
@@ -346,7 +472,7 @@ function showRecipeForm(mealId){
   renderIngList();document.getElementById('db-view').style.display='none';document.getElementById('db-form').style.display='block';
   setTimeout(()=>document.getElementById('f-name').focus(),50);
 }
-function cancelForm(){document.getElementById('db-form').style.display='none';document.getElementById('db-view').style.display='block';}
+function cancelForm(){editingMealId=null;document.getElementById('db-form').style.display='none';document.getElementById('db-view').style.display='block';}
 function saveRecipe(){
   const name=document.getElementById('f-name').value.trim();
   if(!name){alert('Bitte einen Gerichtnamen eingeben.');return;}
@@ -375,7 +501,7 @@ function showTab(tab){
   if(tab==='db'){renderDbList();document.getElementById('db-view').style.display='block';document.getElementById('db-form').style.display='none';}
 }
 
-// ── Service Worker registration ───────────────────────────────────────────────
+// ── Service Worker ────────────────────────────────────────────────────────────
 if('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').catch(()=>{});
@@ -387,6 +513,7 @@ renderMealGrid();
 renderPlanned();
 updateBadge();
 if(currentList.length) renderShoppingList();
+initSync();
 </script>
 </body>
 </html>
