@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Mahlzeiten-Planer">
@@ -27,7 +27,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .content { padding: 16px; max-width: 800px; margin: 0 auto; }
 .section-title { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
 .card { background: white; border: 0.5px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-.meal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.meal-grid { display: block; margin-bottom: 14px; }
+.folder-section { margin-bottom: 8px; }
+.folder-header { display: flex; align-items: center; gap: 8px; padding: 8px 4px; cursor: pointer; font-size: 13px; font-weight: 600; color: #444; border-bottom: 0.5px solid rgba(0,0,0,0.1); margin-bottom: 10px; user-select: none; -webkit-user-select: none; }
+.folder-header:active { color: #1D9E75; }
+.folder-chevron { font-size: 9px; color: #aaa; width: 12px; text-align: center; }
+.folder-name { flex: 1; }
+.folder-count { font-size: 11px; color: #aaa; font-weight: 400; background: #f0f0f0; border-radius: 10px; padding: 2px 8px; }
+.folder-meals-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 10px; }
+.no-folder-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 10px; }
 .meal-card { background: white; border: 0.5px solid rgba(0,0,0,0.12); border-radius: 10px; padding: 12px; cursor: pointer; position: relative; transition: border-color 0.15s; }
 .meal-card.selected { border: 1.5px solid #1D9E75; }
 .meal-card .checkmark { position: absolute; top: 8px; right: 8px; width: 18px; height: 18px; border-radius: 50%; background: #1D9E75; display: none; align-items: center; justify-content: center; }
@@ -144,6 +152,9 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
       <div class="recipe-form-card">
         <label class="form-label">Gerichtname</label>
         <input id="f-name" type="text" placeholder="z.B. Spaghetti Bolognese" style="margin-bottom:16px" />
+        <label class="form-label">Ordner</label>
+        <input id="f-folder" type="text" list="folder-datalist" placeholder="Ordner (optional, z.B. Pasta)" style="margin-bottom:16px" autocomplete="off" />
+        <datalist id="folder-datalist"></datalist>
         <label class="form-label">Zutaten</label>
         <div class="col-header"><span>Menge</span><span>Einheit</span><span>Bezeichnung</span><span></span></div>
         <div class="ing-list" id="ing-list"></div>
@@ -240,7 +251,7 @@ let currentList   = LS.load('currentList', []);
 let plannedMeals  = LS.load('plannedMeals', []);
 let nextId        = LS.load('nextId', 7);
 let nextItemId    = LS.load('nextItemId', 1000);
-let selected={}, editingIdx=null, editingMealId=null, confirmingId=null, formIngredients=[];
+let selected={}, editingIdx=null, editingMealId=null, confirmingId=null, formIngredients=[], collapsedFolders={};
 
 // ── Save & Sync ───────────────────────────────────────────────────────────────
 function saveState() {
@@ -357,11 +368,72 @@ function combineIngredients(allIng){
   });
 }
 
+// ── Folder helpers ────────────────────────────────────────────────────────────
+function getFolderList(){
+  const set=new Set(meals.map(m=>m.folder||'').filter(Boolean));
+  return [...set].sort((a,b)=>a.localeCompare(b,'de'));
+}
+function updateFolderDatalist(){
+  const dl=document.getElementById('folder-datalist');
+  if(!dl)return;
+  dl.innerHTML=getFolderList().map(f=>`<option value="${f}"></option>`).join('');
+}
+function toggleFolder(name){
+  collapsedFolders[name]=!collapsedFolders[name];
+  renderMealGrid();
+}
+function mealCardHtml(m){
+  return`<div class="meal-card ${selected[m.id]?'selected':''}" onclick="toggleMeal(${m.id})"><div class="checkmark"><svg viewBox="0 0 12 9"><polyline points="1,4 4.5,8 11,1"/></svg></div><div class="meal-name">${m.name}</div><div class="meal-meta">${m.ingredients.length} Zutaten</div></div>`;
+}
+
 // ── Planner ───────────────────────────────────────────────────────────────────
 function renderMealGrid(){
   const grid=document.getElementById('meal-grid');
   if(!meals.length){grid.innerHTML='<div class="empty-state">Noch keine Rezepte vorhanden.</div>';return;}
-  grid.innerHTML=meals.map(m=>`<div class="meal-card ${selected[m.id]?'selected':''}" onclick="toggleMeal(${m.id})"><div class="checkmark"><svg viewBox="0 0 12 9"><polyline points="1,4 4.5,8 11,1"/></svg></div><div class="meal-name">${m.name}</div><div class="meal-meta">${m.ingredients.length} Zutaten</div></div>`).join('');
+
+  // Group meals by folder
+  const grouped={};
+  const NO_FOLDER='__none__';
+  meals.forEach(m=>{
+    const key=(m.folder||'').trim()||NO_FOLDER;
+    if(!grouped[key])grouped[key]=[];
+    grouped[key].push(m);
+  });
+
+  // Sort: named folders alphabetically first, then ungrouped
+  const keys=Object.keys(grouped).sort((a,b)=>{
+    if(a===NO_FOLDER)return 1;
+    if(b===NO_FOLDER)return -1;
+    return a.localeCompare(b,'de');
+  });
+
+  let html='';
+
+  // If only ungrouped meals exist (no folders yet) → show flat grid like before
+  if(keys.length===1&&keys[0]===NO_FOLDER){
+    html=`<div class="no-folder-grid">${grouped[NO_FOLDER].map(mealCardHtml).join('')}</div>`;
+  } else {
+    keys.forEach(key=>{
+      const folderMeals=grouped[key];
+      if(key===NO_FOLDER){
+        // Ungrouped meals always visible at bottom, no header
+        html+=`<div class="no-folder-grid">${folderMeals.map(mealCardHtml).join('')}</div>`;
+      } else {
+        const collapsed=!!collapsedFolders[key];
+        const safeKey=key.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        html+=`<div class="folder-section">
+          <div class="folder-header" onclick="toggleFolder('${safeKey}')">
+            <span class="folder-chevron">${collapsed?'▶':'▼'}</span>
+            <span class="folder-name">${key}</span>
+            <span class="folder-count">${folderMeals.length}</span>
+          </div>
+          ${collapsed?'':`<div class="folder-meals-grid">${folderMeals.map(mealCardHtml).join('')}</div>`}
+        </div>`;
+      }
+    });
+  }
+
+  grid.innerHTML=html;
 }
 function toggleMeal(id){selected[id]=!selected[id];if(!selected[id])delete selected[id];renderMealGrid();}
 function clearSelection(){selected={};renderMealGrid();}
@@ -467,8 +539,19 @@ function removeIngRow(i){formIngredients.splice(i,1);renderIngList();}
 
 function showRecipeForm(mealId){
   editingMealId=mealId||null;
-  if(mealId){const m=meals.find(x=>x.id===mealId);document.getElementById('f-name').value=m.name;formIngredients=m.ingredients.map(x=>({...x}));document.getElementById('form-title').textContent='Rezept bearbeiten';}
-  else{document.getElementById('f-name').value='';formIngredients=[{amt:'',unit:'',name:''}];document.getElementById('form-title').textContent='Neues Rezept';}
+  updateFolderDatalist();
+  if(mealId){
+    const m=meals.find(x=>x.id===mealId);
+    document.getElementById('f-name').value=m.name;
+    document.getElementById('f-folder').value=m.folder||'';
+    formIngredients=m.ingredients.map(x=>({...x}));
+    document.getElementById('form-title').textContent='Rezept bearbeiten';
+  } else {
+    document.getElementById('f-name').value='';
+    document.getElementById('f-folder').value='';
+    formIngredients=[{amt:'',unit:'',name:''}];
+    document.getElementById('form-title').textContent='Neues Rezept';
+  }
   renderIngList();document.getElementById('db-view').style.display='none';document.getElementById('db-form').style.display='block';
   setTimeout(()=>document.getElementById('f-name').focus(),50);
 }
@@ -478,16 +561,17 @@ function saveRecipe(){
   if(!name){alert('Bitte einen Gerichtnamen eingeben.');return;}
   const ings=formIngredients.filter(i=>i.name.trim());
   if(!ings.length){alert('Bitte mindestens eine Zutat eingeben.');return;}
+  const folder=document.getElementById('f-folder').value.trim();
   const cleanIngs=ings.map(i=>({amt:i.amt.trim(),unit:i.unit.trim(),name:i.name.trim()}));
-  if(editingMealId){const idx=meals.findIndex(m=>m.id===editingMealId);if(idx>=0)meals[idx]={id:editingMealId,name,ingredients:cleanIngs};}
-  else{meals.push({id:nextId++,name,ingredients:cleanIngs});}
+  if(editingMealId){const idx=meals.findIndex(m=>m.id===editingMealId);if(idx>=0)meals[idx]={id:editingMealId,name,folder,ingredients:cleanIngs};}
+  else{meals.push({id:nextId++,name,folder,ingredients:cleanIngs});}
   saveState();cancelForm();renderDbList();renderMealGrid();
   showToast(editingMealId?'Rezept gespeichert':'Rezept hinzugefügt');
 }
 function renderDbList(){
   const el=document.getElementById('db-list');
   if(!meals.length){el.innerHTML='<div class="empty-state">Noch keine Rezepte.</div>';return;}
-  el.innerHTML=meals.map(m=>`<div class="card" style="margin-bottom:10px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><span style="font-weight:600;font-size:15px;color:#1a1a1a">${m.name}</span><div style="display:flex;gap:6px"><button class="btn sm" onclick="showRecipeForm(${m.id})">Bearbeiten</button><button class="btn danger-sm" onclick="deleteMeal(${m.id})">Löschen</button></div></div><div style="font-size:13px;color:#888">${m.ingredients.map(i=>ingToStr(i)).join(' · ')}</div></div>`).join('');
+  el.innerHTML=meals.map(m=>`<div class="card" style="margin-bottom:10px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div><span style="font-weight:600;font-size:15px;color:#1a1a1a">${m.name}</span>${m.folder?`<span style="font-size:11px;color:#1D9E75;background:#E1F5EE;border-radius:8px;padding:2px 8px;margin-left:8px">${m.folder}</span>`:''}</div><div style="display:flex;gap:6px"><button class="btn sm" onclick="showRecipeForm(${m.id})">Bearbeiten</button><button class="btn danger-sm" onclick="deleteMeal(${m.id})">Löschen</button></div></div><div style="font-size:13px;color:#888">${m.ingredients.map(i=>ingToStr(i)).join(' · ')}</div></div>`).join('');
 }
 function deleteMeal(id){
   if(!confirm('Rezept löschen?'))return;
