@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Mahlzeiten-Planer">
+<meta name="theme-color" content="#1D9E75">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Mahlzeiten-Planer</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; min-height: 100vh; }
+.app-header { background: white; border-bottom: 0.5px solid rgba(0,0,0,0.12); padding: 16px 20px; position: sticky; top: 0; z-index: 100; }
+.app-header h1 { font-size: 20px; font-weight: 600; color: #1a1a1a; }
+.app-header p { font-size: 13px; color: #888; margin-top: 2px; }
+.tab-bar { display: flex; background: white; border-bottom: 0.5px solid rgba(0,0,0,0.12); overflow-x: auto; }
+.tab { padding: 12px 20px; font-size: 14px; cursor: pointer; color: #888; border-bottom: 2px solid transparent; white-space: nowrap; background: none; border-top: none; border-left: none; border-right: none; font-family: inherit; transition: color 0.15s; }
+.tab.active { color: #1D9E75; border-bottom-color: #1D9E75; font-weight: 500; }
+.content { padding: 16px; max-width: 800px; margin: 0 auto; }
+.section-title { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+.card { background: white; border: 0.5px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.meal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.meal-card { background: white; border: 0.5px solid rgba(0,0,0,0.12); border-radius: 10px; padding: 12px; cursor: pointer; position: relative; transition: border-color 0.15s; }
+.meal-card.selected { border: 1.5px solid #1D9E75; }
+.meal-card .checkmark { position: absolute; top: 8px; right: 8px; width: 18px; height: 18px; border-radius: 50%; background: #1D9E75; display: none; align-items: center; justify-content: center; }
+.meal-card.selected .checkmark { display: flex; }
+.meal-card .checkmark svg { width: 10px; height: 10px; stroke: white; stroke-width: 2.5; fill: none; }
+.meal-name { font-size: 14px; font-weight: 500; color: #1a1a1a; margin-bottom: 4px; padding-right: 22px; }
+.meal-meta { font-size: 12px; color: #888; }
+.btn-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.btn { padding: 9px 18px; border-radius: 9px; border: 0.5px solid rgba(0,0,0,0.2); background: white; color: #1a1a1a; font-size: 14px; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+.btn:hover, .btn:active { background: #f0f0f0; }
+.btn.primary { background: #1D9E75; border-color: #1D9E75; color: white; }
+.btn.primary:hover, .btn.primary:active { background: #0F6E56; }
+.btn.sm { padding: 5px 12px; font-size: 13px; }
+.btn.danger-sm { padding: 5px 12px; font-size: 13px; color: #c0392b; border-color: rgba(0,0,0,0.1); }
+.btn.danger-sm:hover { background: #fff0f0; }
+.btn.icon-btn { padding: 4px 10px; font-size: 18px; line-height: 1; border-color: rgba(0,0,0,0.1); color: #888; }
+.btn.icon-btn:hover { color: #c0392b; background: #fff0f0; }
+input, select, textarea { border: 0.5px solid rgba(0,0,0,0.2); border-radius: 9px; padding: 9px 12px; font-family: inherit; font-size: 14px; background: white; color: #1a1a1a; width: 100%; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75; }
+.sl-table { width: 100%; border-collapse: collapse; }
+.sl-table th { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.05em; padding: 0 8px 10px 0; text-align: left; border-bottom: 0.5px solid rgba(0,0,0,0.1); }
+.sl-table td { padding: 10px 8px 10px 0; border-bottom: 0.5px solid rgba(0,0,0,0.07); font-size: 14px; vertical-align: middle; }
+.sl-table tr:last-child td { border-bottom: none; }
+.sl-table tr.checked td { text-decoration: line-through; color: #bbb; }
+.check-cell { width: 30px; }
+.check-circle { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+.checked .check-circle { background: #1D9E75; border-color: #1D9E75; }
+.check-circle svg { width: 10px; height: 10px; stroke: white; stroke-width: 2.5; fill: none; display: none; }
+.checked .check-circle svg { display: block; }
+.qty-cell { width: 90px; color: #888; font-size: 13px; }
+.actions-cell { width: 120px; text-align: right; white-space: nowrap; }
+.origin-text { font-size: 11px; color: #bbb; display: block; margin-top: 2px; }
+.edit-row td { padding: 6px 8px 6px 0; background: #f9f9f9; }
+.edit-row input { font-size: 13px; padding: 6px 10px; }
+.add-item-form { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.add-item-form input.qty { width: 90px; }
+.add-item-form input.name { flex: 1; min-width: 120px; }
+.badge { background: #1D9E75; color: white; border-radius: 10px; font-size: 11px; padding: 2px 8px; margin-left: 6px; }
+.empty-state { text-align: center; padding: 24px 16px; color: #888; font-size: 14px; line-height: 1.6; }
+.cat-header td { padding-top: 16px; padding-bottom: 6px; font-size: 11px; font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: 0.07em; border-bottom: 0.5px solid rgba(0,0,0,0.08); }
+.ing-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.ing-row input.amt { width: 75px; }
+.ing-row select.unit { width: 85px; padding: 9px 4px; }
+.ing-row input.ingname { flex: 1; }
+.ing-list { margin-bottom: 12px; }
+.recipe-form-card { border: 0.5px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 16px; margin-bottom: 14px; background: #f9f9f9; }
+.form-label { font-size: 12px; color: #888; margin-bottom: 6px; display: block; font-weight: 500; }
+.col-header { display: grid; grid-template-columns: 75px 85px 1fr 36px; gap: 8px; margin-bottom: 6px; }
+.col-header span { font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; }
+.planned-item { display: flex; align-items: flex-start; justify-content: space-between; padding: 12px 0; border-bottom: 0.5px solid rgba(0,0,0,0.07); gap: 10px; flex-wrap: wrap; }
+.planned-item:last-child { border-bottom: none; }
+.planned-info { display: flex; align-items: center; gap: 10px; flex: 1; }
+.count-badge { min-width: 28px; height: 28px; border-radius: 50%; background: #E1F5EE; color: #085041; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.planned-name { font-size: 14px; color: #1a1a1a; font-weight: 500; }
+.confirm-overlay { background: #fff8f8; border: 0.5px solid rgba(192,57,43,0.2); border-radius: 9px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; width: 100%; }
+.confirm-text { font-size: 13px; color: #666; flex: 1; min-width: 160px; }
+.divider { border: none; border-top: 0.5px solid rgba(0,0,0,0.1); margin: 16px 0; }
+.planned-badge { display: inline-block; background: #E1F5EE; color: #085041; border-radius: 10px; font-size: 11px; padding: 2px 8px; margin-left: 6px; font-weight: 500; }
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="app-header">
+  <h1>Mahlzeiten-Planer</h1>
+  <p>Wochenplanung &amp; Einkaufsliste</p>
+</div>
+
+<div class="tab-bar">
+  <button class="tab active" onclick="showTab('planner')">Wochenplaner</button>
+  <button class="tab" onclick="showTab('list')">Einkaufsliste <span class="badge" id="list-badge" style="display:none"></span></button>
+  <button class="tab" onclick="showTab('db')">Rezepte</button>
+</div>
+
+<div class="content">
+  <div id="tab-planner">
+    <p class="section-title">Gerichte auswählen</p>
+    <div class="meal-grid" id="meal-grid"></div>
+    <div class="btn-row">
+      <button class="btn primary" onclick="generateList()">Zur Einkaufsliste hinzufügen</button>
+      <button class="btn" onclick="clearSelection()">Auswahl zurücksetzen</button>
+    </div>
+    <hr class="divider">
+    <p class="section-title">Geplante Mahlzeiten <span id="planned-count-badge" class="planned-badge" style="display:none"></span></p>
+    <div class="card" id="planned-card">
+      <div class="empty-state">Noch keine Mahlzeiten geplant.<br>Wähle Gerichte aus und füge sie zur Einkaufsliste hinzu.</div>
+    </div>
+  </div>
+
+  <div id="tab-list" style="display:none">
+    <div id="list-content"><div class="empty-state">Noch keine Einkaufsliste generiert.</div></div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn" onclick="clearShoppingList()">Liste leeren</button>
+      <button class="btn primary" onclick="exportList()">Liste teilen</button>
+    </div>
+  </div>
+
+  <div id="tab-db" style="display:none">
+    <div id="db-view">
+      <div class="btn-row"><button class="btn primary" onclick="showRecipeForm()">+ Neues Rezept</button></div>
+      <p class="section-title">Alle Rezepte</p>
+      <div id="db-list"></div>
+    </div>
+    <div id="db-form" style="display:none">
+      <p class="section-title" id="form-title">Neues Rezept</p>
+      <div class="recipe-form-card">
+        <label class="form-label">Gerichtname</label>
+        <input id="f-name" type="text" placeholder="z.B. Spaghetti Bolognese" style="margin-bottom:16px" />
+        <label class="form-label">Zutaten</label>
+        <div class="col-header"><span>Menge</span><span>Einheit</span><span>Bezeichnung</span><span></span></div>
+        <div class="ing-list" id="ing-list"></div>
+        <button class="btn sm" onclick="addIngRow()">+ Zutat hinzufügen</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="saveRecipe()">Speichern</button>
+        <button class="btn" onclick="cancelForm()">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const UNITS_LIST = ['','g','kg','ml','l','EL','TL','Dose','Stück','Pck.','Bund','Zehe','Scheibe','Stange','Tasse','Becher','Prise'];
+const CATEGORIES = [
+  { name:"Obst & Gemüse", keywords:["zwiebel","knoblauch","karotte","kartoffel","tomate","zucchini","paprika","sellerie","lauch","salat","spinat","brokkoli","gurke","aubergine","avocado","zitrone","limette","apfel","birne","banane","erdbeere","petersilie","koriander","basilikum","rosmarin","thymian","minze","ingwer","fenchel","erbse","champignon","pilz","kräuter","kirschtomaten"] },
+  { name:"Fleisch & Fisch", keywords:["hackfleisch","hähnchen","hühner","hähnchenbrustfilet","rind","schwein","lamm","speck","wurst","lachs","thunfisch","garnele","fisch","steak","schnitzel","filet","pute","ente","salami","schinken","lachsfilet"] },
+  { name:"Milchwaren", keywords:["milch","butter","sahne","joghurt","quark","käse","mozzarella","parmesan","cheddar","frischkäse","schmand","sauerrahm","kefir","eier","ei"] },
+  { name:"Kühlprodukte", keywords:["tofu","tempeh","feta","ricotta","crème fraîche","hummus","margarine","blätterteig","fertigteig","pizzateig"] },
+  { name:"TK-Produkte", keywords:["tiefkühl","tk-","gefrorene","frozen","fischstäbchen"] },
+  { name:"Konserven & Gläser", keywords:["dose","konserve","kokosmilch","tomatensoße","tomatenmark","tomatenpaste","senf","ketchup","mayonnaise","sojasoße","currypaste"] },
+  { name:"Trockenwaren & Nudeln", keywords:["spaghetti","nudel","pasta","reis","quinoa","couscous","bulgur","linsen","rote linsen","kichererbsen","haferflocken","mehl","zucker","salz","pfeffer","basmatireis"] },
+  { name:"Backzutaten", keywords:["backpulver","natron","hefe","vanille","kakao","schokolade","puderzucker","zimt","vanillezucker"] },
+  { name:"Öle & Würzmittel", keywords:["olivenöl","öl","essig","balsamico","brühe","gemüsebrühe","hühnerbrühe","fond","kreuzkümmel","kurkuma","paprikapulver","currypulver","oregano","majoran","muskat","chili"] },
+  { name:"Brot & Backwaren", keywords:["brot","brötchen","toast","tortilla","wrap","pita","baguette"] },
+  { name:"Getränke", keywords:["wasser","saft","wein","bier","kaffee","tee","sprudel","limonade"] },
+  { name:"Sonstiges", keywords:[] },
+];
+
+const DEFAULT_MEALS = [
+  { id:1, name:"Spaghetti Bolognese", ingredients:[{amt:"500",unit:"g",name:"Hackfleisch"},{amt:"2",unit:"",name:"Zwiebeln"},{amt:"3",unit:"",name:"Knoblauchzehen"},{amt:"1",unit:"Dose",name:"Tomaten"},{amt:"200",unit:"g",name:"Spaghetti"},{amt:"",unit:"",name:"Parmesan"},{amt:"",unit:"",name:"Olivenöl"},{amt:"",unit:"",name:"Salz & Pfeffer"}] },
+  { id:2, name:"Hähnchen-Curry", ingredients:[{amt:"600",unit:"g",name:"Hähnchenbrustfilet"},{amt:"1",unit:"",name:"Zwiebel"},{amt:"2",unit:"",name:"Knoblauchzehen"},{amt:"1",unit:"Dose",name:"Kokosmilch"},{amt:"2",unit:"EL",name:"Currypaste"},{amt:"200",unit:"g",name:"Basmatireis"},{amt:"1",unit:"",name:"Limette"},{amt:"",unit:"",name:"Koriander"}] },
+  { id:3, name:"Gemüsesuppe", ingredients:[{amt:"3",unit:"",name:"Karotten"},{amt:"2",unit:"",name:"Kartoffeln"},{amt:"1",unit:"",name:"Zwiebel"},{amt:"2",unit:"Stange",name:"Sellerie"},{amt:"1",unit:"l",name:"Gemüsebrühe"},{amt:"",unit:"",name:"Petersilie"},{amt:"",unit:"",name:"Salz & Pfeffer"}] },
+  { id:4, name:"Lachs mit Gemüse", ingredients:[{amt:"4",unit:"",name:"Lachsfilets"},{amt:"2",unit:"",name:"Zucchini"},{amt:"1",unit:"",name:"Paprika"},{amt:"200",unit:"g",name:"Kirschtomaten"},{amt:"1",unit:"",name:"Zitrone"},{amt:"",unit:"",name:"Olivenöl"},{amt:"",unit:"",name:"Rosmarin"}] },
+  { id:5, name:"Linsensuppe", ingredients:[{amt:"300",unit:"g",name:"rote Linsen"},{amt:"2",unit:"",name:"Karotten"},{amt:"1",unit:"",name:"Zwiebel"},{amt:"3",unit:"",name:"Knoblauchzehen"},{amt:"1",unit:"l",name:"Gemüsebrühe"},{amt:"1",unit:"TL",name:"Kreuzkümmel"},{amt:"1",unit:"",name:"Zitrone"},{amt:"",unit:"",name:"Olivenöl"}] },
+  { id:6, name:"Pizza Margherita", ingredients:[{amt:"300",unit:"g",name:"Pizzateig"},{amt:"150",unit:"ml",name:"Tomatensoße"},{amt:"200",unit:"g",name:"Mozzarella"},{amt:"",unit:"",name:"Basilikum"},{amt:"",unit:"",name:"Olivenöl"},{amt:"",unit:"",name:"Salz"}] },
+];
+
+// ── LocalStorage helpers ──────────────────────────────────────────────────────
+const LS = {
+  save(key, val) { try { localStorage.setItem('mp_'+key, JSON.stringify(val)); } catch(e) {} },
+  load(key, def)  { try { const v=localStorage.getItem('mp_'+key); return v!=null?JSON.parse(v):def; } catch(e) { return def; } }
+};
+
+function saveState() {
+  LS.save('meals', meals);
+  LS.save('currentList', currentList);
+  LS.save('plannedMeals', plannedMeals);
+  LS.save('nextId', nextId);
+  LS.save('nextItemId', nextItemId);
+}
+
+// ── State (loaded from localStorage or defaults) ──────────────────────────────
+let meals         = LS.load('meals', DEFAULT_MEALS);
+let currentList   = LS.load('currentList', []);
+let plannedMeals  = LS.load('plannedMeals', []);
+let nextId        = LS.load('nextId', 7);
+let nextItemId    = LS.load('nextItemId', 1000);
+let selected={}, editingIdx=null, editingMealId=null, confirmingId=null, formIngredients=[];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function categorize(name) {
+  const n = name.toLowerCase();
+  for (const cat of CATEGORIES) { if (cat.name==="Sonstiges") continue; for (const kw of cat.keywords) { if (n.includes(kw)) return cat.name; } }
+  return "Sonstiges";
+}
+function sortByCategory(list) {
+  const order = CATEGORIES.map(c=>c.name);
+  return [...list].sort((a,b) => { const ca=order.indexOf(categorize(a.name)),cb=order.indexOf(categorize(b.name)); return ca!==cb?ca-cb:a.name.localeCompare(b.name,'de'); });
+}
+function ingToStr(i){return[i.amt,i.unit,i.name].filter(Boolean).join(' ').trim();}
+function normalizeKey(name){return name.toLowerCase().replace(/\s+/g,' ').replace(/en$/,'').replace(/n$/,'').replace(/e$/,'').trim();}
+
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+// ── Ingredient combining ──────────────────────────────────────────────────────
+function combineIngredients(allIng){
+  const groups={};
+  allIng.forEach(({ingredient,meal})=>{
+    const key=normalizeKey(ingredient.name);
+    if(!groups[key])groups[key]={name:ingredient.name,amount:0,unit:ingredient.unit,meals:[],items:[]};
+    groups[key].meals.push(meal);groups[key].items.push(ingredient);
+    const amt=parseFloat(ingredient.amt)||0;
+    if(amt>0){if(groups[key].unit===ingredient.unit)groups[key].amount+=amt;else if(!groups[key].amount){groups[key].amount=amt;groups[key].unit=ingredient.unit;}}
+  });
+  return Object.values(groups).map(g=>{
+    let qty='';
+    if(g.items.length===1){qty=[g.items[0].amt,g.items[0].unit].filter(Boolean).join(' ');}
+    else if(g.amount>0){qty=(g.amount%1===0?String(g.amount):g.amount.toFixed(1))+(g.unit?' '+g.unit:'');}
+    return{id:nextItemId++,qty,name:g.name,meals:g.meals,combined:g.meals.length>1,manual:false,checked:false};
+  });
+}
+
+// ── Planner ───────────────────────────────────────────────────────────────────
+function renderMealGrid(){
+  const grid=document.getElementById('meal-grid');
+  if(!meals.length){grid.innerHTML='<div class="empty-state">Noch keine Rezepte vorhanden.</div>';return;}
+  grid.innerHTML=meals.map(m=>`<div class="meal-card ${selected[m.id]?'selected':''}" onclick="toggleMeal(${m.id})"><div class="checkmark"><svg viewBox="0 0 12 9"><polyline points="1,4 4.5,8 11,1"/></svg></div><div class="meal-name">${m.name}</div><div class="meal-meta">${m.ingredients.length} Zutaten</div></div>`).join('');
+}
+function toggleMeal(id){selected[id]=!selected[id];if(!selected[id])delete selected[id];renderMealGrid();}
+function clearSelection(){selected={};renderMealGrid();}
+
+function generateList(){
+  const ids=Object.keys(selected).map(Number);
+  if(!ids.length){alert('Bitte mindestens ein Gericht auswählen.');return;}
+  const allIng=[];
+  ids.forEach(id=>{
+    const m=meals.find(x=>x.id===id);if(!m)return;
+    m.ingredients.forEach(ing=>allIng.push({ingredient:ing,meal:m.name}));
+    const existing=plannedMeals.find(p=>p.mealId===id);
+    if(existing)existing.count++;else plannedMeals.push({mealId:id,name:m.name,count:1,uid:nextItemId++});
+  });
+  const newItems=sortByCategory(combineIngredients(allIng));
+  newItems.forEach(newItem=>{
+    const key=normalizeKey(newItem.name);
+    const existing=currentList.find(e=>normalizeKey(e.name)===key);
+    if(existing){
+      const newAmt=parseFloat(newItem.qty)||0,existAmt=parseFloat(existing.qty)||0;
+      if(newAmt>0&&existAmt>0){existing.qty=String(newAmt+existAmt)+(newItem.qty.replace(/[\d.]+/,'').trim()||'');}
+      newItem.meals.forEach(m=>{if(!existing.meals.includes(m))existing.meals.push(m);});
+      existing.combined=existing.meals.length>1;
+    }else{currentList.push(newItem);}
+  });
+  currentList=sortByCategory(currentList);
+  selected={};saveState();renderMealGrid();renderPlanned();renderShoppingList();updateBadge();showTab('list');
+}
+
+// ── Planned meals ─────────────────────────────────────────────────────────────
+function renderPlanned(){
+  const el=document.getElementById('planned-card');
+  const badge=document.getElementById('planned-count-badge');
+  const total=plannedMeals.reduce((s,p)=>s+p.count,0);
+  if(!plannedMeals.length){el.innerHTML='<div class="empty-state">Noch keine Mahlzeiten geplant.<br>Wähle Gerichte aus und füge sie zur Einkaufsliste hinzu.</div>';badge.style.display='none';return;}
+  badge.textContent=total+(total===1?' Mahlzeit':' Mahlzeiten');badge.style.display='inline';
+  el.innerHTML=plannedMeals.map(p=>{
+    const isConfirming=confirmingId===p.uid;
+    return`<div class="planned-item"><div class="planned-info"><div class="count-badge">${p.count}</div><span class="planned-name">${p.name}</span></div>${isConfirming?`<div class="confirm-overlay"><span class="confirm-text">"${p.name}" als gekocht markieren?</span><button class="btn sm danger-sm" onclick="confirmRemove(${p.uid})">Ja, entfernen</button><button class="btn sm" onclick="cancelConfirm()">Abbrechen</button></div>`:`<button class="btn sm danger-sm" onclick="askConfirm(${p.uid})">Gekocht &amp; gegessen</button>`}</div>`;
+  }).join('');
+}
+function askConfirm(uid){confirmingId=uid;renderPlanned();}
+function cancelConfirm(){confirmingId=null;renderPlanned();}
+function confirmRemove(uid){
+  const idx=plannedMeals.findIndex(p=>p.uid===uid);if(idx<0)return;
+  if(plannedMeals[idx].count>1)plannedMeals[idx].count--;else plannedMeals.splice(idx,1);
+  confirmingId=null;saveState();renderPlanned();
+}
+
+// ── Shopping list ─────────────────────────────────────────────────────────────
+function renderShoppingList(){
+  const el=document.getElementById('list-content');
+  if(!currentList.length){el.innerHTML='<div class="empty-state">Noch keine Einträge.</div>';return;}
+  let lastCat=null;
+  const rows=currentList.map((item,i)=>{
+    const cat=categorize(item.name);let catRow='';
+    if(cat!==lastCat){lastCat=cat;catRow=`<tr class="cat-header"><td colspan="4">${cat}</td></tr>`;}
+    if(editingIdx===i){return catRow+`<tr class="edit-row"><td class="check-cell"></td><td class="qty-cell"><input id="eq-${i}" value="${item.qty}" placeholder="Menge"/></td><td><input id="en-${i}" value="${item.name}" placeholder="Bezeichnung"/></td><td class="actions-cell"><button class="btn sm primary" onclick="saveEdit(${i})" style="margin-right:4px">OK</button><button class="btn sm" onclick="cancelEdit()">×</button></td></tr>`;}
+    return catRow+`<tr class="${item.checked?'checked':''}"><td class="check-cell"><div class="check-circle" onclick="toggleCheck(${i})"><svg viewBox="0 0 12 9"><polyline points="1,4 4.5,8 11,1"/></svg></div></td><td class="qty-cell">${item.qty||'–'}</td><td><span>${item.name}</span>${item.combined?`<span class="origin-text">aus: ${item.meals.join(', ')}</span>`:''}${item.manual?`<span class="origin-text">manuell</span>`:''}</td><td class="actions-cell"><button class="btn sm" onclick="startEdit(${i})" style="margin-right:4px">Bearb.</button><button class="btn danger-sm" onclick="deleteItem(${i})">–</button></td></tr>`;
+  }).join('');
+  el.innerHTML=`<div class="card"><table class="sl-table"><thead><tr><th></th><th>Menge</th><th>Bezeichnung</th><th></th></tr></thead><tbody>${rows}</tbody></table><div class="add-item-form"><input class="qty" id="new-qty" placeholder="Menge"/><input class="name" id="new-name" placeholder="Bezeichnung" onkeydown="if(event.key==='Enter')addItem()"/><button class="btn primary" onclick="addItem()">+</button></div></div>`;
+}
+function startEdit(i){editingIdx=i;renderShoppingList();setTimeout(()=>{const e=document.getElementById('en-'+i);if(e)e.focus();},50);}
+function cancelEdit(){editingIdx=null;renderShoppingList();}
+function saveEdit(i){
+  const qty=document.getElementById('eq-'+i).value.trim(),name=document.getElementById('en-'+i).value.trim();
+  if(!name){alert('Bezeichnung darf nicht leer sein.');return;}
+  currentList[i].qty=qty;currentList[i].name=name;editingIdx=null;currentList=sortByCategory(currentList);saveState();renderShoppingList();
+}
+function toggleCheck(i){currentList[i].checked=!currentList[i].checked;saveState();renderShoppingList();}
+function deleteItem(i){currentList.splice(i,1);if(editingIdx===i)editingIdx=null;saveState();updateBadge();renderShoppingList();}
+function addItem(){
+  const qty=document.getElementById('new-qty').value.trim(),name=document.getElementById('new-name').value.trim();
+  if(!name){document.getElementById('new-name').focus();return;}
+  currentList.push({id:nextItemId++,qty,name,meals:[],combined:false,manual:true,checked:false});
+  currentList=sortByCategory(currentList);saveState();updateBadge();renderShoppingList();
+  setTimeout(()=>{const e=document.getElementById('new-qty');if(e)e.focus();},50);
+}
+function clearShoppingList(){
+  if(!currentList.length){return;}
+  if(!confirm('Einkaufsliste leeren?'))return;
+  currentList=[];plannedMeals=[];saveState();updateBadge();renderShoppingList();renderPlanned();
+  showToast('Liste geleert');
+}
+function updateBadge(){const b=document.getElementById('list-badge');b.textContent=currentList.length;b.style.display=currentList.length?'inline':'none';}
+function exportList(){
+  if(!currentList.length){alert('Keine Liste vorhanden.');return;}
+  let lastCat=null;
+  const lines=currentList.map(item=>{const cat=categorize(item.name);let out='';if(cat!==lastCat){lastCat=cat;out+='\n'+cat+':\n';}out+=(item.checked?'✓ ':'• ')+(item.qty?item.qty+' ':'')+item.name;return out;});
+  const text="Einkaufsliste:\n"+lines.join('\n');
+  if(navigator.share){navigator.share({title:'Einkaufsliste',text}).catch(()=>{});}
+  else{navigator.clipboard.writeText(text).then(()=>showToast('Liste kopiert!')).catch(()=>prompt('Liste kopieren:',text));}
+}
+
+// ── Recipe form ───────────────────────────────────────────────────────────────
+function unitSelect(sel){return`<select class="unit">${UNITS_LIST.map(u=>`<option value="${u}" ${u===sel?'selected':''}>${u||'–'}</option>`).join('')}</select>`;}
+function renderIngList(){
+  const el=document.getElementById('ing-list');
+  el.innerHTML=formIngredients.map((ing,i)=>`<div class="ing-row"><input class="amt" type="text" value="${ing.amt}" placeholder="Menge" oninput="formIngredients[${i}].amt=this.value"/>${unitSelect(ing.unit).replace('<select',`<select onchange="formIngredients[${i}].unit=this.value"`)}<input class="ingname" type="text" value="${ing.name}" placeholder="Bezeichnung" oninput="formIngredients[${i}].name=this.value"/><button class="btn icon-btn" onclick="removeIngRow(${i})">×</button></div>`).join('');
+}
+function addIngRow(){formIngredients.push({amt:'',unit:'',name:''});renderIngList();setTimeout(()=>{const rows=document.querySelectorAll('.ing-row');if(rows.length)rows[rows.length-1].querySelector('.ingname').focus();},50);}
+function removeIngRow(i){formIngredients.splice(i,1);renderIngList();}
+
+function showRecipeForm(mealId){
+  editingMealId=mealId||null;
+  if(mealId){const m=meals.find(x=>x.id===mealId);document.getElementById('f-name').value=m.name;formIngredients=m.ingredients.map(x=>({...x}));document.getElementById('form-title').textContent='Rezept bearbeiten';}
+  else{document.getElementById('f-name').value='';formIngredients=[{amt:'',unit:'',name:''}];document.getElementById('form-title').textContent='Neues Rezept';}
+  renderIngList();document.getElementById('db-view').style.display='none';document.getElementById('db-form').style.display='block';
+  setTimeout(()=>document.getElementById('f-name').focus(),50);
+}
+function cancelForm(){document.getElementById('db-form').style.display='none';document.getElementById('db-view').style.display='block';}
+function saveRecipe(){
+  const name=document.getElementById('f-name').value.trim();
+  if(!name){alert('Bitte einen Gerichtnamen eingeben.');return;}
+  const ings=formIngredients.filter(i=>i.name.trim());
+  if(!ings.length){alert('Bitte mindestens eine Zutat eingeben.');return;}
+  const cleanIngs=ings.map(i=>({amt:i.amt.trim(),unit:i.unit.trim(),name:i.name.trim()}));
+  if(editingMealId){const idx=meals.findIndex(m=>m.id===editingMealId);if(idx>=0)meals[idx]={id:editingMealId,name,ingredients:cleanIngs};}
+  else{meals.push({id:nextId++,name,ingredients:cleanIngs});}
+  saveState();cancelForm();renderDbList();renderMealGrid();
+  showToast(editingMealId?'Rezept gespeichert':'Rezept hinzugefügt');
+}
+function renderDbList(){
+  const el=document.getElementById('db-list');
+  if(!meals.length){el.innerHTML='<div class="empty-state">Noch keine Rezepte.</div>';return;}
+  el.innerHTML=meals.map(m=>`<div class="card" style="margin-bottom:10px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><span style="font-weight:600;font-size:15px;color:#1a1a1a">${m.name}</span><div style="display:flex;gap:6px"><button class="btn sm" onclick="showRecipeForm(${m.id})">Bearbeiten</button><button class="btn danger-sm" onclick="deleteMeal(${m.id})">Löschen</button></div></div><div style="font-size:13px;color:#888">${m.ingredients.map(i=>ingToStr(i)).join(' · ')}</div></div>`).join('');
+}
+function deleteMeal(id){
+  if(!confirm('Rezept löschen?'))return;
+  meals=meals.filter(m=>m.id!==id);delete selected[id];saveState();renderDbList();renderMealGrid();
+}
+
+// ── Tab navigation ────────────────────────────────────────────────────────────
+function showTab(tab){
+  ['planner','list','db'].forEach(t=>document.getElementById('tab-'+t).style.display=t===tab?'block':'none');
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['planner','list','db'][i]===tab));
+  if(tab==='db'){renderDbList();document.getElementById('db-view').style.display='block';document.getElementById('db-form').style.display='none';}
+}
+
+// ── Service Worker registration ───────────────────────────────────────────────
+if('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+renderMealGrid();
+renderPlanned();
+updateBadge();
+if(currentList.length) renderShoppingList();
+</script>
+</body>
+</html>
