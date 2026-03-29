@@ -274,7 +274,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v1.5.1';
+const APP_VERSION = 'v1.5.2';
 
 // ── Firebase Config ────────────────────────────────────────────────────────────
 const FIREBASE_CONFIG = {
@@ -434,7 +434,7 @@ function combineIngredients(allIng){
 // ── Date helpers ──────────────────────────────────────────────────────────────
 const TODAY=(()=>{ const d=new Date(); d.setHours(0,0,0,0); return d; })();
 function addDays(d,n){ const r=new Date(d); r.setDate(r.getDate()+n); return r; }
-function dateKey(d){ return d.toISOString().slice(0,10); }
+function dateKey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function get7Days(){ return Array.from({length:7},(_,i)=>addDays(TODAY,i)); }
 function dateFromKey(dk){ return new Date(dk+'T00:00:00'); }
 function isPastDk(dk){ return dateFromKey(dk)<TODAY; }
@@ -657,7 +657,7 @@ function toggleSheetFolder(key){
 
 function renderSheetBody(dk){
   const plan=plannedDays[dk];
-  const selectedMeals=(plan&&plan.type==='meal'&&plan.meals)?plan.meals:[];
+  const selectedMeals=(plan&&!plan.eaten&&plan.type==='meal'&&plan.meals)?plan.meals:[];
   const selectedIds=selectedMeals.map(m=>m.mealId);
   const atMax=selectedIds.length>=2;
 
