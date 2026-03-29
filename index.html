@@ -274,7 +274,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v1.5.0';
+const APP_VERSION = 'v1.5.1';
 
 // ── Firebase Config ────────────────────────────────────────────────────────────
 const FIREBASE_CONFIG = {
@@ -499,7 +499,7 @@ function renderDayRowHtml(dk, date, isPast){
   // Action (right column)
   let actionHtml='';
   if(!hasPlan){
-    actionHtml=`<div class="btn-add">+</div>`;
+    actionHtml=`<div class="btn-add" onclick="openDaySheet('${dk}')">+</div>`;
   } else if(isPast){
     actionHtml=`<button class="btn-eaten" onclick="event.stopPropagation();markEaten('${dk}')">Gegessen ✓</button>`;
   } else if(plan.type==='meal'){
@@ -607,7 +607,7 @@ function _onTE(e){
 function _startGhost(row, clientY){
   _isDragging=true;
   _ghost=row.cloneNode(true);
-  _ghost.className='drag-ghost';
+  _ghost.classList.add('drag-ghost');
   _ghost.style.top=(clientY-_ghostOffY)+'px';
   _ghost.style.height=row.offsetHeight+'px';
   document.body.appendChild(_ghost);
