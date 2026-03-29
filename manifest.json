@@ -1,6 +1,6 @@
 {
-  "name": "Mahlzeiten-Planer",
-  "short_name": "Mahlzeiten",
+  "name": "MealApp",
+  "short_name": "MealApp",
   "description": "Wochenplanung und Einkaufsliste für Mahlzeiten",
   "start_url": "./index.html",
   "display": "standalone",

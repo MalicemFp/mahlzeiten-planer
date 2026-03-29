@@ -274,7 +274,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v1.5.3';
+const APP_VERSION = 'v1.6.0';
 
 // ── Firebase Config ────────────────────────────────────────────────────────────
 const FIREBASE_CONFIG = {
@@ -825,7 +825,7 @@ function addDayToList(dk){
   currentList=sortByCategory(currentList);
   plan.inList=true;
   saveState(); renderWeekPlanner(); renderShoppingList(); updateBadge();
-  showTab('list'); showToast('Zur Einkaufsliste hinzugefügt ✓');
+  showToast('Zur Einkaufsliste hinzugefügt ✓');
 }
 
 function removeDayFromList(dk){
