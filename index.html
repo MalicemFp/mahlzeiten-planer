@@ -274,7 +274,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v1.6.0';
+const APP_VERSION = 'v1.6.1';
 
 // ── Firebase Config ────────────────────────────────────────────────────────────
 const FIREBASE_CONFIG = {
@@ -975,7 +975,7 @@ function showTab(tab){
 // ── Service Worker ────────────────────────────────────────────────────────────
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(()=>{});
     // Wenn ein neuer SW die Kontrolle übernimmt → einmal neu laden
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
