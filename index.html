@@ -274,7 +274,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v1.5.2';
+const APP_VERSION = 'v1.5.3';
 
 // ── Firebase Config ────────────────────────────────────────────────────────────
 const FIREBASE_CONFIG = {
@@ -973,7 +973,16 @@ function showTab(tab){
 }
 
 // ── Service Worker ────────────────────────────────────────────────────────────
-if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+    // Wenn ein neuer SW die Kontrolle übernimmt → einmal neu laden
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if(!refreshing){ refreshing=true; window.location.reload(); }
+    });
+  });
+}
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.getElementById('version-label').textContent=APP_VERSION;
