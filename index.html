@@ -151,7 +151,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 .edit-row td { padding: 6px 8px 6px 0; background: #f9f9f9; }
 .edit-row input { font-size: 13px; padding: 6px 10px; }
 .add-item-form { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; padding-top: 14px; border-top: 0.5px solid rgba(0,0,0,0.07); }
-.add-item-form input.qty { width: 90px; }
+.add-item-form input.qty { width: 70px; flex-shrink: 0; }
+.add-item-form select.unit { width: 80px; flex-shrink: 0; }
 .add-item-form input.name { flex: 1; min-width: 120px; }
 .badge { background: #1D9E75; color: white; border-radius: 10px; font-size: 11px; padding: 2px 8px; margin-left: 6px; }
 .empty-state { text-align: center; padding: 20px 16px 8px; color: #888; font-size: 14px; line-height: 1.6; }
@@ -274,7 +275,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v1.6.1';
+const APP_VERSION = 'v1.6.5';
 
 // ── Firebase Config ────────────────────────────────────────────────────────────
 const FIREBASE_CONFIG = {
@@ -501,6 +502,7 @@ function renderDayRowHtml(dk, date, isPast){
   if(!hasPlan){
     actionHtml=`<div class="btn-add" onclick="openDaySheet('${dk}')">+</div>`;
   } else if(isPast){
+    // Vergangene Tage: nur Gegessen-Button
     actionHtml=`<button class="btn-eaten" onclick="event.stopPropagation();markEaten('${dk}')">Gegessen ✓</button>`;
   } else if(plan.type==='meal'){
     const mls=plan.meals||[];
@@ -510,7 +512,11 @@ function renderDayRowHtml(dk, date, isPast){
         ?`<button class="btn-list-action in-list" onclick="event.stopPropagation();removeDayFromList('${dk}')">− Liste</button>`
         :`<button class="btn-list-action" onclick="event.stopPropagation();addDayToList('${dk}')">+ Liste</button>`;
     }
-    actionHtml=`<div class="day-actions-col">${listBtn}<button class="btn-remove" onclick="event.stopPropagation();clearDay('${dk}')">×</button></div>`;
+    // Heute: Gegessen-Button statt ×; Zukunft: ×
+    const rightBtn=isToday
+      ?`<button class="btn-eaten" onclick="event.stopPropagation();markEaten('${dk}')">Gegessen ✓</button>`
+      :`<button class="btn-remove" onclick="event.stopPropagation();clearDay('${dk}')">×</button>`;
+    actionHtml=`<div class="day-actions-col">${listBtn}${rightBtn}</div>`;
   } else {
     actionHtml=`<div class="day-actions-col"><button class="btn-remove" onclick="event.stopPropagation();clearDay('${dk}')">×</button></div>`;
   }
@@ -848,7 +854,20 @@ function renderShoppingList(){
 
   // Add-item form (always shown)
   const addFormHtml=`<div class="add-item-form">
-    <input class="qty" id="new-qty" placeholder="Menge"/>
+    <input class="qty" id="new-qty" placeholder="Menge" inputmode="decimal"/>
+    <select class="unit" id="new-unit">
+      <option value="">–</option>
+      <option value="Stück">Stück</option>
+      <option value="g">g</option>
+      <option value="kg">kg</option>
+      <option value="ml">ml</option>
+      <option value="l">l</option>
+      <option value="EL">EL</option>
+      <option value="TL">TL</option>
+      <option value="Pck.">Pck.</option>
+      <option value="Bund">Bund</option>
+      <option value="Dose">Dose</option>
+    </select>
     <input class="name" id="new-name" placeholder="Bezeichnung" onkeydown="if(event.key==='Enter')addItem()"/>
     <button class="btn primary" onclick="addItem()">+</button>
   </div>`;
@@ -887,8 +906,11 @@ function saveEdit(i){
 function toggleCheck(i){ currentList[i].checked=!currentList[i].checked; saveState(); renderShoppingList(); }
 function deleteItem(i){ currentList.splice(i,1); if(editingIdx===i)editingIdx=null; saveState(); updateBadge(); renderShoppingList(); }
 function addItem(){
-  const qty=document.getElementById('new-qty').value.trim(), name=document.getElementById('new-name').value.trim();
+  const amt=document.getElementById('new-qty').value.trim();
+  const unit=document.getElementById('new-unit').value;
+  const name=document.getElementById('new-name').value.trim();
   if(!name){ document.getElementById('new-name').focus(); return; }
+  const qty=amt&&unit ? amt+' '+unit : (amt||unit);
   currentList.push({id:nextItemId++,qty,name,meals:[],combined:false,manual:true,checked:false,dayContributions:{}});
   currentList=sortByCategory(currentList); saveState(); updateBadge(); renderShoppingList();
   setTimeout(()=>{ const e=document.getElementById('new-qty'); if(e)e.focus(); },50);
