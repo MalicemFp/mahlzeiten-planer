@@ -328,7 +328,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v1.8.0';
+const APP_VERSION = 'v1.8.1';
 
 // ── Firebase Config ────────────────────────────────────────────────────────────
 const FIREBASE_CONFIG = {
@@ -429,7 +429,7 @@ function renderAll(){ renderWeekPlanner(); renderShoppingList(); updateBadge(); 
 
 function initSync() {
   if(!db){ setSyncStatus(''); return; }
-  db.ref('.info/connected').on('value',snap=>{ if(!_localWrite)setSyncStatus(snap.val()?'online':''); });
+  db.ref('.info/connected').on('value',snap=>{ if(!snap.val())setSyncStatus(''); else if(!_localWrite)setSyncStatus('online'); });
   db.ref('household').on('value',snapshot=>{
     if(_localWrite)return;
     const data=snapshot.val();
@@ -1247,14 +1247,15 @@ function toggleQuickItem(id){
 }
 function addSelectedQuickItems(){
   if(!_selectedQuickIds.size){ showToast('Bitte mindestens einen Artikel auswählen.'); return; }
+  const count=_selectedQuickIds.size;
+  closeQuickBuySheet();
   quickItems.filter(i=>_selectedQuickIds.has(i.id)).forEach(item=>{
     const exists=currentList.find(i=>!i.checked&&normalizeKey(i.name)===normalizeKey(item.name));
-    if(!exists) currentList.push({id:nextItemId++,qty:item.qty,name:item.name,meals:[],combined:false,manual:true,checked:false,dayContributions:{}});
+    if(!exists) currentList.push({id:nextItemId++,qty:item.qty||'',name:item.name,meals:[],combined:false,manual:true,checked:false,dayContributions:{}});
   });
   currentList=sortByCategory(currentList);
   saveState(); updateBadge(); renderShoppingList();
-  closeQuickBuySheet();
-  showToast(_selectedQuickIds.size+' Artikel hinzugefügt ✓');
+  showToast(count+' Artikel hinzugefügt ✓');
 }
 
 // ── Tab navigation ────────────────────────────────────────────────────────────
