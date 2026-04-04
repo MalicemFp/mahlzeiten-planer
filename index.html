@@ -95,7 +95,9 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 .overlay.open { opacity: 1; pointer-events: all; }
 .sheet { background: white; width: 100%; border-radius: 20px 20px 0 0; max-height: 82vh; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.25s cubic-bezier(.32,.72,0,1); }
 .overlay.open .sheet { transform: translateY(0); }
-.sheet-header { padding: 16px 16px 12px; border-bottom: 0.5px solid rgba(0,0,0,0.1); flex-shrink: 0; }
+.sheet-header { padding: 16px 20px 12px; border-bottom: 0.5px solid rgba(0,0,0,0.1); flex-shrink: 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.sheet-close { background: #1D9E75; color: white; border: none; border-radius: 8px; padding: 5px 14px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
+.sheet-close:active { background: #0F6E56; }
 .sheet-title { font-size: 15px; font-weight: 600; }
 .sheet-subtitle { font-size: 12px; color: #aaa; margin-top: 3px; }
 .sheet-body { overflow-y: auto; padding: 10px 16px 8px; flex: 1; }
@@ -186,8 +188,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 .col-header { display: grid; grid-template-columns: 75px 85px 1fr 36px; gap: 8px; margin-bottom: 6px; }
 .col-header span { font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; }
 .divider { border: none; border-top: 0.5px solid rgba(0,0,0,0.1); margin: 16px 0; }
-.col-header-quick { display: grid; grid-template-columns: 90px 1fr 36px; gap: 8px; margin-bottom: 6px; }
-.col-header-quick span { font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; }
+/* col-header-quick removed – Merkliste hat keine Menge-Spalte mehr */
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
 .toast.show { opacity: 1; }
 </style>
@@ -234,10 +235,10 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
       <button class="btn sm" id="btn-hide-checked" onclick="toggleHideChecked()">Abgehakte anzeigen</button>
     </div>
     <div id="list-content"></div>
-    <div class="btn-row" style="margin-top:8px">
-      <button class="btn" onclick="clearShoppingList()">Liste leeren</button>
-      <button class="btn" onclick="openQuickBuySheet()">📋 Stammkauf</button>
-      <button class="btn primary" onclick="exportList()">Liste teilen</button>
+    <div class="btn-row" style="margin-top:8px;flex-wrap:nowrap">
+      <button class="btn" style="flex:1;padding:9px 6px;font-size:13px" onclick="clearShoppingList()">Leeren</button>
+      <button class="btn primary" style="flex:1;padding:9px 6px;font-size:13px" onclick="exportList()">Teilen</button>
+      <button class="btn" style="flex:1;padding:9px 6px;font-size:13px" onclick="openQuickBuySheet()">📋 Merkliste</button>
     </div>
   </div>
 
@@ -246,22 +247,23 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
     <div id="db-view">
       <div class="btn-row">
         <button class="btn primary" onclick="showRecipeForm()">+ Neues Rezept</button>
-        <button class="btn" onclick="showQuickForm()">📋 Stammkauf</button>
+        <button class="btn" onclick="showQuickForm()">📋 Merkliste</button>
       </div>
       <p class="section-title">Alle Rezepte</p>
       <div id="db-list"></div>
     </div>
     <div id="db-quickform" style="display:none">
-      <p class="section-title">Stammkauf verwalten</p>
-      <div class="recipe-form-card">
-        <label class="form-label">Artikel</label>
-        <div class="col-header-quick"><span>Menge</span><span>Bezeichnung</span><span></span></div>
-        <div class="ing-list" id="quick-ing-list"></div>
-        <button class="btn sm" onclick="addQuickIngRow()">+ Artikel hinzufügen</button>
+      <p class="section-title">Merkliste verwalten</p>
+      <div id="quick-cat-list"></div>
+      <div class="recipe-form-card" style="margin-top:8px">
+        <label class="form-label">Neuen Artikel hinzufügen</label>
+        <div class="ing-row">
+          <input id="quick-new-name" class="ingname" placeholder="Bezeichnung" onkeydown="if(event.key==='Enter')addQuickItem()"/>
+          <button class="btn sm primary" onclick="addQuickItem()">+</button>
+        </div>
       </div>
       <div class="btn-row">
-        <button class="btn primary" onclick="saveQuickItems()">Speichern</button>
-        <button class="btn" onclick="cancelQuickForm()">Abbrechen</button>
+        <button class="btn" onclick="cancelQuickForm()">Schließen</button>
       </div>
     </div>
     <div id="db-form" style="display:none">
@@ -291,8 +293,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 <div class="overlay" id="quickbuy-overlay" onclick="if(event.target===this)closeQuickBuySheet()">
   <div class="sheet">
     <div class="sheet-header">
-      <span class="sheet-title">Stammkauf</span>
-      <button class="sheet-close" onclick="closeQuickBuySheet()">✕</button>
+      <span class="sheet-title">Merkliste</span>
+      <button class="sheet-close" onclick="closeQuickBuySheet()">Schließen</button>
     </div>
     <div class="sheet-body" id="quickbuy-body"></div>
     <div style="padding:16px 20px;border-top:0.5px solid rgba(0,0,0,0.08);flex-shrink:0">
@@ -305,8 +307,10 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 <div class="overlay" id="day-overlay" onclick="overlayClick(event)">
   <div class="sheet">
     <div class="sheet-header">
-      <div class="sheet-title" id="sheet-title">Mahlzeit wählen</div>
-      <div class="sheet-subtitle" id="sheet-subtitle"></div>
+      <div>
+        <div class="sheet-title" id="sheet-title">Mahlzeit wählen</div>
+        <div class="sheet-subtitle" id="sheet-subtitle"></div>
+      </div>
     </div>
     <div class="sheet-body" id="sheet-body"></div>
     <div class="sheet-footer">
@@ -324,7 +328,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v1.7.5';
+const APP_VERSION = 'v1.7.6';
 
 // ── Firebase Config ────────────────────────────────────────────────────────────
 const FIREBASE_CONFIG = {
@@ -402,8 +406,8 @@ let customCategories = LS.load('customCategories', {});
 let quickItems      = LS.load('quickItems', []);
 let nextQuickId     = LS.load('nextQuickId', 1);
 let pendingCategoryChecks = []; // [{name, nk}] – warten auf Zuordnung
-let formQuickItems  = [];       // Arbeitskopie im Stammkauf-Formular
 let _selectedQuickIds = new Set();
+let quickFormCollapsed = {};    // { catName: true } = zugeklappt in Merkliste-Verwaltung
 let editingIdx=null, editingMealId=null, formIngredients=[], collapsedFolders={};
 let openDateKey=null, sheetCollapsedFolders={};
 let dbCollapsedFolders={}; // { folderName: true } = eingeklappt; fehlend/false = offen
@@ -1145,47 +1149,64 @@ function renderDbList(){
 }
 function deleteMeal(id){ if(!confirm('Rezept löschen?'))return; meals=meals.filter(m=>m.id!==id); saveState(); renderDbList(); showToast('Rezept gelöscht'); }
 
-// ── Stammkauf verwalten ───────────────────────────────────────────────────────
+// ── Merkliste verwalten ───────────────────────────────────────────────────────
 function showQuickForm(){
-  formQuickItems=quickItems.map(i=>({...i}));
-  if(!formQuickItems.length) formQuickItems.push({id:0,qty:'',name:''});
-  renderQuickIngList();
+  quickFormCollapsed={};
+  renderQuickFormView();
   document.getElementById('db-view').style.display='none';
   document.getElementById('db-form').style.display='none';
   document.getElementById('db-quickform').style.display='block';
+  setTimeout(()=>document.getElementById('quick-new-name').focus(),100);
 }
 function cancelQuickForm(){
   document.getElementById('db-quickform').style.display='none';
   document.getElementById('db-view').style.display='block';
 }
-function renderQuickIngList(){
-  document.getElementById('quick-ing-list').innerHTML=formQuickItems.map((item,i)=>`
-    <div class="ing-row">
-      <input style="width:90px" placeholder="Menge" value="${item.qty||''}" oninput="formQuickItems[${i}].qty=this.value"/>
-      <input class="ingname" placeholder="Bezeichnung" value="${item.name||''}" oninput="formQuickItems[${i}].name=this.value"/>
-      <button class="btn icon-btn" onclick="removeQuickIngRow(${i})">×</button>
-    </div>`).join('');
+function renderQuickFormView(){
+  const el=document.getElementById('quick-cat-list'); if(!el) return;
+  if(!quickItems.length){ el.innerHTML=''; return; }
+  // Nach Kategorie gruppieren und sortieren
+  const catOrder=CATEGORIES.map(c=>c.name);
+  const groups={};
+  quickItems.forEach(item=>{ const cat=categorize(item.name); if(!groups[cat])groups[cat]=[]; groups[cat].push(item); });
+  const sortedCats=Object.keys(groups).sort((a,b)=>catOrder.indexOf(a)-catOrder.indexOf(b));
+  el.innerHTML=sortedCats.map(cat=>{
+    const items=groups[cat];
+    const isOpen=quickFormCollapsed[cat]===true;
+    const safe=cat.replace(/'/g,"\\'");
+    return `<div class="db-folder-section">
+      <div class="folder-header${isOpen?' open':''}" onclick="toggleQuickFormSection('${safe}')">
+        <span class="folder-chevron">▶</span>
+        <span class="folder-name">${cat}</span>
+        <span class="folder-count">${items.length}</span>
+      </div>
+      <div${isOpen?'':' style="display:none"'}>
+        ${items.map(item=>`<div class="ing-row" style="padding:2px 4px">
+          <span style="flex:1;font-size:14px;padding:6px 0;color:#1a1a1a">${item.name}</span>
+          <button class="btn icon-btn" onclick="removeQuickItem(${item.id})">×</button>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
 }
-function addQuickIngRow(){
-  formQuickItems.push({id:0,qty:'',name:''}); renderQuickIngList();
+function toggleQuickFormSection(cat){
+  quickFormCollapsed[cat]=(quickFormCollapsed[cat]!==true); // undefined/false→true(offen), true→false
+  renderQuickFormView();
 }
-function removeQuickIngRow(i){
-  formQuickItems.splice(i,1);
-  if(!formQuickItems.length) formQuickItems.push({id:0,qty:'',name:''});
-  renderQuickIngList();
+function addQuickItem(){
+  const input=document.getElementById('quick-new-name');
+  const name=input.value.trim(); if(!name) return;
+  quickItems.push({id:nextQuickId++,name});
+  input.value=''; saveState(); renderQuickFormView(); checkSonstiges(name);
+  input.focus();
 }
-function saveQuickItems(){
-  const cleaned=formQuickItems.filter(i=>i.name.trim()).map(i=>({
-    id:i.id||nextQuickId++, qty:i.qty.trim(), name:i.name.trim()
-  }));
-  quickItems=cleaned;
-  saveState(); cancelQuickForm(); showToast('Stammkauf gespeichert');
-  cleaned.forEach(i=>checkSonstiges(i.name));
+function removeQuickItem(id){
+  quickItems=quickItems.filter(i=>i.id!==id); saveState(); renderQuickFormView();
 }
 
-// ── Stammkauf auswählen ───────────────────────────────────────────────────────
+// ── Merkliste auswählen ───────────────────────────────────────────────────────
 function openQuickBuySheet(){
-  if(!quickItems.length){ showToast('Stammkauf-Liste leer – bitte zuerst verwalten.'); return; }
+  if(!quickItems.length){ showToast('Merkliste leer – bitte zuerst befüllen.'); return; }
   _selectedQuickIds=new Set();
   renderQuickBuySheet();
   document.getElementById('quickbuy-overlay').classList.add('open');
@@ -1194,17 +1215,21 @@ function closeQuickBuySheet(){
   document.getElementById('quickbuy-overlay').classList.remove('open');
 }
 function renderQuickBuySheet(){
-  document.getElementById('quickbuy-body').innerHTML=quickItems.map(item=>{
-    const sel=_selectedQuickIds.has(item.id);
-    return `<div class="meal-pick-row" onclick="toggleQuickItem(${item.id})">
-      <div class="pick-checkbox${sel?' checked':''}">
-        ${sel?`<svg viewBox="0 0 12 10" fill="none" stroke="white" stroke-width="2.5"><polyline points="1,5 4.5,9 11,1"/></svg>`:''}
-      </div>
-      <div style="flex:1;min-width:0">
-        <div class="pick-name">${item.name}</div>
-        ${item.qty?`<div class="pick-sub">${item.qty}</div>`:''}
-      </div>
-    </div>`;
+  const catOrder=CATEGORIES.map(c=>c.name);
+  const groups={};
+  quickItems.forEach(item=>{ const cat=categorize(item.name); if(!groups[cat])groups[cat]=[]; groups[cat].push(item); });
+  const sortedCats=Object.keys(groups).sort((a,b)=>catOrder.indexOf(a)-catOrder.indexOf(b));
+  const checkSvg=`<svg viewBox="0 0 12 10" fill="none" stroke="white" stroke-width="2.5"><polyline points="1,5 4.5,9 11,1"/></svg>`;
+  document.getElementById('quickbuy-body').innerHTML=sortedCats.map(cat=>{
+    const items=groups[cat];
+    return `<div class="sheet-section-label" style="margin-top:10px;margin-bottom:2px">${cat}</div>`+
+      items.map(item=>{
+        const sel=_selectedQuickIds.has(item.id);
+        return `<div class="meal-pick-row" onclick="toggleQuickItem(${item.id})">
+          <div class="pick-checkbox${sel?' checked':''}">${sel?checkSvg:''}</div>
+          <div class="pick-name">${item.name}</div>
+        </div>`;
+      }).join('');
   }).join('');
 }
 function toggleQuickItem(id){
