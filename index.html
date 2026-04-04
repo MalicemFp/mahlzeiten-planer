@@ -170,11 +170,12 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 /* ── Recipes ──────────────────────────────────────── */
 .folder-section { margin-bottom: 8px; }
-.folder-header { display: flex; align-items: center; gap: 8px; padding: 8px 4px; cursor: pointer; font-size: 13px; font-weight: 600; color: #444; border-bottom: 0.5px solid rgba(0,0,0,0.1); margin-bottom: 10px; user-select: none; -webkit-user-select: none; }
-.folder-header:active { color: #1D9E75; }
-.folder-chevron { font-size: 9px; color: #aaa; width: 12px; text-align: center; }
+.folder-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; min-height: 48px; cursor: pointer; font-size: 14px; font-weight: 600; color: #2a2a2a; background: #f2fbf7; border-radius: 9px; margin-bottom: 8px; user-select: none; -webkit-user-select: none; transition: background 0.15s; -webkit-tap-highlight-color: transparent; }
+.folder-header:active { background: #e0f5ec; }
+.folder-header.open .folder-chevron { transform: rotate(90deg); }
+.folder-chevron { font-size: 11px; color: #1D9E75; transition: transform 0.2s; flex-shrink: 0; padding: 0 4px; }
 .folder-name { flex: 1; }
-.folder-count { font-size: 11px; color: #aaa; font-weight: 400; background: #f0f0f0; border-radius: 10px; padding: 2px 8px; }
+.folder-count { font-size: 12px; color: #1D9E75; font-weight: 500; background: #d8f2e8; border-radius: 10px; padding: 2px 9px; }
 .ing-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 .ing-row input.amt { width: 75px; }
 .ing-row select.unit { width: 85px; padding: 9px 4px; }
@@ -185,6 +186,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 .col-header { display: grid; grid-template-columns: 75px 85px 1fr 36px; gap: 8px; margin-bottom: 6px; }
 .col-header span { font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; }
 .divider { border: none; border-top: 0.5px solid rgba(0,0,0,0.1); margin: 16px 0; }
+.col-header-quick { display: grid; grid-template-columns: 90px 1fr 36px; gap: 8px; margin-bottom: 6px; }
+.col-header-quick span { font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; }
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
 .toast.show { opacity: 1; }
 </style>
@@ -233,6 +236,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
     <div id="list-content"></div>
     <div class="btn-row" style="margin-top:8px">
       <button class="btn" onclick="clearShoppingList()">Liste leeren</button>
+      <button class="btn" onclick="openQuickBuySheet()">📋 Stammkauf</button>
       <button class="btn primary" onclick="exportList()">Liste teilen</button>
     </div>
   </div>
@@ -240,9 +244,25 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
   <!-- ── Rezepte ── -->
   <div id="tab-db" style="display:none">
     <div id="db-view">
-      <div class="btn-row"><button class="btn primary" onclick="showRecipeForm()">+ Neues Rezept</button></div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="showRecipeForm()">+ Neues Rezept</button>
+        <button class="btn" onclick="showQuickForm()">📋 Stammkauf</button>
+      </div>
       <p class="section-title">Alle Rezepte</p>
       <div id="db-list"></div>
+    </div>
+    <div id="db-quickform" style="display:none">
+      <p class="section-title">Stammkauf verwalten</p>
+      <div class="recipe-form-card">
+        <label class="form-label">Artikel</label>
+        <div class="col-header-quick"><span>Menge</span><span>Bezeichnung</span><span></span></div>
+        <div class="ing-list" id="quick-ing-list"></div>
+        <button class="btn sm" onclick="addQuickIngRow()">+ Artikel hinzufügen</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="saveQuickItems()">Speichern</button>
+        <button class="btn" onclick="cancelQuickForm()">Abbrechen</button>
+      </div>
     </div>
     <div id="db-form" style="display:none">
       <p class="section-title" id="form-title">Neues Rezept</p>
@@ -265,6 +285,20 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
     </div>
   </div>
 
+</div>
+
+<!-- ── Stammkauf Sheet ── -->
+<div class="overlay" id="quickbuy-overlay" onclick="if(event.target===this)closeQuickBuySheet()">
+  <div class="sheet">
+    <div class="sheet-header">
+      <span class="sheet-title">Stammkauf</span>
+      <button class="sheet-close" onclick="closeQuickBuySheet()">✕</button>
+    </div>
+    <div class="sheet-body" id="quickbuy-body"></div>
+    <div style="padding:16px 20px;border-top:0.5px solid rgba(0,0,0,0.08);flex-shrink:0">
+      <button class="btn primary" style="width:100%" onclick="addSelectedQuickItems()">Zur Liste hinzufügen</button>
+    </div>
+  </div>
 </div>
 
 <!-- ── Bottom Sheet ── -->
@@ -290,7 +324,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v1.7.0';
+const APP_VERSION = 'v1.7.5';
 
 // ── Firebase Config ────────────────────────────────────────────────────────────
 const FIREBASE_CONFIG = {
@@ -329,7 +363,7 @@ const CATEGORIES = [
   { name:"Milchwaren", keywords:["milch","butter","sahne","joghurt","quark","käse","mozzarella","parmesan","cheddar","frischkäse","schmand","sauerrahm","kefir","eier","ei"] },
   { name:"Kühlprodukte", keywords:["tofu","tempeh","feta","ricotta","crème fraîche","hummus","margarine","blätterteig","fertigteig","pizzateig"] },
   { name:"TK-Produkte", keywords:["tiefkühl","tk-","tk ","gefrorene","frozen","fischstäbchen","pommes"] },
-  { name:"Konserven & Gläser", keywords:["dose","konserve","kokosmilch","tomatensoße","tomatenmark","tomatenpaste","senf","ketchup","mayonnaise","sojasoße","currypaste","bambus","kidney","mais"] },
+  { name:"Konserven & Gläser", keywords:["dose","konserve","kokosmilch","tomatensoße","tomatenmark","tomatenpaste","senf","ketchup","mayonnaise","sojasoße","currypaste","bambus","kidney","mais","gehackte","stückig","passierte"] },
   { name:"Trockenwaren & Nudeln", keywords:["spaghetti","nudel","pasta","reis","quinoa","couscous","bulgur","linsen","rote linsen","kichererbsen","haferflocken","mehl","zucker","salz","pfeffer","basmatireis"] },
   { name:"Backzutaten", keywords:["backpulver","natron","hefe","vanille","kakao","schokolade","puderzucker","zimt","vanillezucker"] },
   { name:"Öle & Würzmittel", keywords:["olivenöl","öl","essig","balsamico","brühe","gemüsebrühe","hühnerbrühe","fond","kreuzkümmel","kurkuma","paprikapulver","currypulver","oregano","majoran","muskat","chili"] },
@@ -365,7 +399,11 @@ let nextId           = LS.load('nextId', 7);
 let nextItemId       = LS.load('nextItemId', 1000);
 let hideChecked      = LS.load('hideChecked', false);
 let customCategories = LS.load('customCategories', {});
+let quickItems      = LS.load('quickItems', []);
+let nextQuickId     = LS.load('nextQuickId', 1);
 let pendingCategoryChecks = []; // [{name, nk}] – warten auf Zuordnung
+let formQuickItems  = [];       // Arbeitskopie im Stammkauf-Formular
+let _selectedQuickIds = new Set();
 let editingIdx=null, editingMealId=null, formIngredients=[], collapsedFolders={};
 let openDateKey=null, sheetCollapsedFolders={};
 let dbCollapsedFolders={}; // { folderName: true } = eingeklappt; fehlend/false = offen
@@ -374,9 +412,10 @@ let dbCollapsedFolders={}; // { folderName: true } = eingeklappt; fehlend/false 
 function saveState() {
   LS.save('meals',meals); LS.save('currentList',currentList); LS.save('plannedDays',plannedDays);
   LS.save('nextId',nextId); LS.save('nextItemId',nextItemId); LS.save('customCategories',customCategories);
+  LS.save('quickItems',quickItems); LS.save('nextQuickId',nextQuickId);
   if(db){
     setSyncStatus('syncing'); _localWrite=true; clearTimeout(_localWriteTimer);
-    db.ref('household').set({meals,currentList,plannedDays,nextId,nextItemId,customCategories})
+    db.ref('household').set({meals,currentList,plannedDays,nextId,nextItemId,customCategories,quickItems,nextQuickId})
       .then(()=>{ setSyncStatus('online'); _localWriteTimer=setTimeout(()=>{ _localWrite=false; },2000); })
       .catch(()=>{ setSyncStatus(''); _localWrite=false; });
   }
@@ -394,8 +433,10 @@ function initSync() {
     meals=data.meals||DEFAULT_MEALS; currentList=data.currentList||[];
     plannedDays=data.plannedDays||{}; nextId=data.nextId||7; nextItemId=data.nextItemId||1000;
     customCategories=data.customCategories||{};
+    quickItems=data.quickItems||[]; nextQuickId=data.nextQuickId||1;
     LS.save('meals',meals); LS.save('currentList',currentList); LS.save('plannedDays',plannedDays);
     LS.save('nextId',nextId); LS.save('nextItemId',nextItemId); LS.save('customCategories',customCategories);
+    LS.save('quickItems',quickItems); LS.save('nextQuickId',nextQuickId);
     if(editingIdx===null&&editingMealId===null){ renderAll(); showToast('Aktualisiert ✓'); }
   });
 }
@@ -1067,7 +1108,8 @@ function _mealCardHtml(m){
   </div>`;
 }
 function toggleDbFolder(key){
-  dbCollapsedFolders[key]=!dbCollapsedFolders[key];
+  // undefined/false = zugeklappt (default), true = offen
+  dbCollapsedFolders[key]=(dbCollapsedFolders[key]!==true);
   renderDbList();
 }
 function renderDbList(){
@@ -1082,11 +1124,11 @@ function renderDbList(){
 
   let html='';
   const renderSection=(key,label,list)=>{
-    const isOpen=!dbCollapsedFolders[key];
+    const isOpen=(dbCollapsedFolders[key]===true); // default: zugeklappt
     const safe=key.replace(/'/g,"\\'");
     html+=`<div class="db-folder-section">
-      <div class="folder-header${isOpen?'':' collapsed'}" onclick="toggleDbFolder('${safe}')">
-        <span class="folder-chevron">${isOpen?'▼':'▶'}</span>
+      <div class="folder-header${isOpen?' open':''}" onclick="toggleDbFolder('${safe}')">
+        <span class="folder-chevron">▶</span>
         <span class="folder-name">${label}</span>
         <span class="folder-count">${list.length}</span>
       </div>
@@ -1103,11 +1145,89 @@ function renderDbList(){
 }
 function deleteMeal(id){ if(!confirm('Rezept löschen?'))return; meals=meals.filter(m=>m.id!==id); saveState(); renderDbList(); showToast('Rezept gelöscht'); }
 
+// ── Stammkauf verwalten ───────────────────────────────────────────────────────
+function showQuickForm(){
+  formQuickItems=quickItems.map(i=>({...i}));
+  if(!formQuickItems.length) formQuickItems.push({id:0,qty:'',name:''});
+  renderQuickIngList();
+  document.getElementById('db-view').style.display='none';
+  document.getElementById('db-form').style.display='none';
+  document.getElementById('db-quickform').style.display='block';
+}
+function cancelQuickForm(){
+  document.getElementById('db-quickform').style.display='none';
+  document.getElementById('db-view').style.display='block';
+}
+function renderQuickIngList(){
+  document.getElementById('quick-ing-list').innerHTML=formQuickItems.map((item,i)=>`
+    <div class="ing-row">
+      <input style="width:90px" placeholder="Menge" value="${item.qty||''}" oninput="formQuickItems[${i}].qty=this.value"/>
+      <input class="ingname" placeholder="Bezeichnung" value="${item.name||''}" oninput="formQuickItems[${i}].name=this.value"/>
+      <button class="btn icon-btn" onclick="removeQuickIngRow(${i})">×</button>
+    </div>`).join('');
+}
+function addQuickIngRow(){
+  formQuickItems.push({id:0,qty:'',name:''}); renderQuickIngList();
+}
+function removeQuickIngRow(i){
+  formQuickItems.splice(i,1);
+  if(!formQuickItems.length) formQuickItems.push({id:0,qty:'',name:''});
+  renderQuickIngList();
+}
+function saveQuickItems(){
+  const cleaned=formQuickItems.filter(i=>i.name.trim()).map(i=>({
+    id:i.id||nextQuickId++, qty:i.qty.trim(), name:i.name.trim()
+  }));
+  quickItems=cleaned;
+  saveState(); cancelQuickForm(); showToast('Stammkauf gespeichert');
+  cleaned.forEach(i=>checkSonstiges(i.name));
+}
+
+// ── Stammkauf auswählen ───────────────────────────────────────────────────────
+function openQuickBuySheet(){
+  if(!quickItems.length){ showToast('Stammkauf-Liste leer – bitte zuerst verwalten.'); return; }
+  _selectedQuickIds=new Set();
+  renderQuickBuySheet();
+  document.getElementById('quickbuy-overlay').classList.add('open');
+}
+function closeQuickBuySheet(){
+  document.getElementById('quickbuy-overlay').classList.remove('open');
+}
+function renderQuickBuySheet(){
+  document.getElementById('quickbuy-body').innerHTML=quickItems.map(item=>{
+    const sel=_selectedQuickIds.has(item.id);
+    return `<div class="meal-pick-row" onclick="toggleQuickItem(${item.id})">
+      <div class="pick-checkbox${sel?' checked':''}">
+        ${sel?`<svg viewBox="0 0 12 10" fill="none" stroke="white" stroke-width="2.5"><polyline points="1,5 4.5,9 11,1"/></svg>`:''}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div class="pick-name">${item.name}</div>
+        ${item.qty?`<div class="pick-sub">${item.qty}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleQuickItem(id){
+  if(_selectedQuickIds.has(id)) _selectedQuickIds.delete(id); else _selectedQuickIds.add(id);
+  renderQuickBuySheet();
+}
+function addSelectedQuickItems(){
+  if(!_selectedQuickIds.size){ showToast('Bitte mindestens einen Artikel auswählen.'); return; }
+  quickItems.filter(i=>_selectedQuickIds.has(i.id)).forEach(item=>{
+    const exists=currentList.find(i=>!i.checked&&normalizeKey(i.name)===normalizeKey(item.name));
+    if(!exists) currentList.push({id:nextItemId++,qty:item.qty,name:item.name,meals:[],combined:false,manual:true,checked:false,dayContributions:{}});
+  });
+  currentList=sortByCategory(currentList);
+  saveState(); updateBadge(); renderShoppingList();
+  closeQuickBuySheet();
+  showToast(_selectedQuickIds.size+' Artikel hinzugefügt ✓');
+}
+
 // ── Tab navigation ────────────────────────────────────────────────────────────
 function showTab(tab){
   ['planner','list','db'].forEach(t=>document.getElementById('tab-'+t).style.display=t===tab?'block':'none');
   document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['planner','list','db'][i]===tab));
-  if(tab==='db'){ renderDbList(); document.getElementById('db-view').style.display='block'; document.getElementById('db-form').style.display='none'; }
+  if(tab==='db'){ renderDbList(); document.getElementById('db-view').style.display='block'; document.getElementById('db-form').style.display='none'; document.getElementById('db-quickform').style.display='none'; }
   if(tab==='list'){ cleanupCheckedItems(); renderShoppingList(); }
 }
 
