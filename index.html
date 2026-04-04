@@ -13,7 +13,8 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; min-height: 100vh; overflow-x: hidden; }
-.app-header { background: white; border-bottom: 0.5px solid rgba(0,0,0,0.12); padding: 16px 20px; position: sticky; top: 0; z-index: 100; }
+.sticky-nav { position: sticky; top: 0; z-index: 100; background: white; }
+.app-header { background: white; border-bottom: none; padding: 16px 20px; }
 .app-header-row { display: flex; justify-content: space-between; align-items: center; }
 .app-header h1 { font-size: 20px; font-weight: 600; color: #1a1a1a; }
 .app-header p { font-size: 13px; color: #888; margin-top: 2px; }
@@ -113,12 +114,12 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 .sheet-section-label { font-size: 11px; font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: 0.06em; padding: 12px 0 6px; }
 
 /* Collapsible folders in sheet */
-.sheet-folder-header { display: flex; align-items: center; gap: 8px; padding: 10px 0 8px; cursor: pointer; user-select: none; -webkit-user-select: none; border-bottom: 0.5px solid rgba(0,0,0,0.08); font-size: 12px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.06em; -webkit-tap-highlight-color: transparent; }
-.sheet-folder-header:active { color: #1D9E75; }
-.sheet-folder-chevron { font-size: 9px; color: #bbb; transition: transform 0.15s; flex-shrink: 0; }
+.sheet-folder-header { display: flex; align-items: center; gap: 10px; padding: 12px 4px; min-height: 48px; cursor: pointer; user-select: none; -webkit-user-select: none; background: #f2fbf7; border-radius: 9px; margin-bottom: 2px; font-size: 14px; font-weight: 600; color: #2a2a2a; -webkit-tap-highlight-color: transparent; transition: background 0.15s; }
+.sheet-folder-header:active { background: #e0f5ec; }
+.sheet-folder-chevron { font-size: 11px; color: #1D9E75; transition: transform 0.2s; flex-shrink: 0; padding: 0 4px; }
 .sheet-folder-header.open .sheet-folder-chevron { transform: rotate(90deg); }
 .sheet-folder-name { flex: 1; }
-.sheet-folder-count { font-size: 11px; color: #ccc; font-weight: 400; }
+.sheet-folder-count { font-size: 12px; color: #1D9E75; font-weight: 500; background: #d8f2e8; border-radius: 10px; padding: 2px 9px; }
 
 .meal-pick-row { display: flex; align-items: center; padding: 11px 0; border-bottom: 0.5px solid rgba(0,0,0,0.07); cursor: pointer; gap: 10px; }
 .meal-pick-row:last-child { border-bottom: none; }
@@ -158,6 +159,15 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 .empty-state { text-align: center; padding: 20px 16px 8px; color: #888; font-size: 14px; line-height: 1.6; }
 .cat-header td { padding-top: 16px; padding-bottom: 6px; font-size: 11px; font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: 0.07em; border-bottom: 0.5px solid rgba(0,0,0,0.08); }
 
+/* ── Category assignment banner ──────────────────── */
+#cat-assign-banner { background: white; border: 0.5px solid rgba(0,0,0,0.1); border-left: 3px solid #1D9E75; border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; }
+.cat-assign-header { font-size: 13px; font-weight: 600; color: #1a1a1a; margin-bottom: 10px; }
+.cat-assign-sub { font-size: 11px; color: #aaa; font-weight: 400; display: block; margin-top: 2px; }
+.cat-assign-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.cat-assign-row:last-child { margin-bottom: 0; }
+.cat-assign-name { font-size: 13px; color: #555; font-style: italic; flex-shrink: 0; }
+.cat-assign-select { flex: 1; min-width: 140px; font-size: 13px; padding: 6px 10px; }
+
 /* ── Recipes ──────────────────────────────────────── */
 .folder-section { margin-bottom: 8px; }
 .folder-header { display: flex; align-items: center; gap: 8px; padding: 8px 4px; cursor: pointer; font-size: 13px; font-weight: 600; color: #444; border-bottom: 0.5px solid rgba(0,0,0,0.1); margin-bottom: 10px; user-select: none; -webkit-user-select: none; }
@@ -180,6 +190,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 </style>
 </head>
 <body>
+<div class="sticky-nav">
 <div class="app-header">
   <div class="app-header-row">
     <div>
@@ -201,8 +212,12 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
   <button class="tab" onclick="showTab('list')">Einkaufsliste <span class="badge" id="list-badge" style="display:none"></span></button>
   <button class="tab" onclick="showTab('db')">Rezepte</button>
 </div>
+</div><!-- /.sticky-nav -->
 
 <div class="content">
+
+  <!-- ── Kategorie-Zuordnungs-Banner ── -->
+  <div id="cat-assign-banner" style="display:none"></div>
 
   <!-- ── Wochenplaner ── -->
   <div id="tab-planner">
@@ -275,7 +290,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v1.6.5';
+const APP_VERSION = 'v1.7.0';
 
 // ── Firebase Config ────────────────────────────────────────────────────────────
 const FIREBASE_CONFIG = {
@@ -309,17 +324,17 @@ function setSyncStatus(status) {
 // ── Constants ─────────────────────────────────────────────────────────────────
 const UNITS_LIST = ['','g','kg','ml','l','EL','TL','Dose','Glas','Stück','Pck.','Bund','Zehe','Scheibe','Stange','Tasse','Becher','Prise'];
 const CATEGORIES = [
-  { name:"Obst & Gemüse", keywords:["zwiebel","knoblauch","karotte","kartoffel","tomate","zucchini","paprika","sellerie","lauch","salat","spinat","brokkoli","gurke","aubergine","avocado","zitrone","limette","apfel","birne","banane","erdbeere","petersilie","koriander","basilikum","rosmarin","thymian","minze","ingwer","fenchel","erbse","champignon","pilz","kräuter","kirschtomaten"] },
+  { name:"Obst & Gemüse", keywords:["zwiebel","knoblauch","karotte","kartoffel","tomate","zucchini","paprika","sellerie","lauch","salat","spinat","brokkoli","gurke","aubergine","avocado","zitrone","limette","apfel","birne","banane","erdbeere","petersilie","koriander","basilikum","rosmarin","thymian","minze","ingwer","fenchel","erbse","champignon","pilz","kräuter","kirschtomaten","schoten","radieschen"] },
   { name:"Fleisch & Fisch", keywords:["hackfleisch","hähnchen","hühner","hähnchenbrustfilet","rind","schwein","lamm","speck","wurst","lachs","thunfisch","garnele","fisch","steak","schnitzel","filet","pute","ente","salami","schinken","lachsfilet"] },
   { name:"Milchwaren", keywords:["milch","butter","sahne","joghurt","quark","käse","mozzarella","parmesan","cheddar","frischkäse","schmand","sauerrahm","kefir","eier","ei"] },
   { name:"Kühlprodukte", keywords:["tofu","tempeh","feta","ricotta","crème fraîche","hummus","margarine","blätterteig","fertigteig","pizzateig"] },
-  { name:"TK-Produkte", keywords:["tiefkühl","tk-","gefrorene","frozen","fischstäbchen"] },
-  { name:"Konserven & Gläser", keywords:["dose","konserve","kokosmilch","tomatensoße","tomatenmark","tomatenpaste","senf","ketchup","mayonnaise","sojasoße","currypaste"] },
+  { name:"TK-Produkte", keywords:["tiefkühl","tk-","tk ","gefrorene","frozen","fischstäbchen","pommes"] },
+  { name:"Konserven & Gläser", keywords:["dose","konserve","kokosmilch","tomatensoße","tomatenmark","tomatenpaste","senf","ketchup","mayonnaise","sojasoße","currypaste","bambus","kidney","mais"] },
   { name:"Trockenwaren & Nudeln", keywords:["spaghetti","nudel","pasta","reis","quinoa","couscous","bulgur","linsen","rote linsen","kichererbsen","haferflocken","mehl","zucker","salz","pfeffer","basmatireis"] },
   { name:"Backzutaten", keywords:["backpulver","natron","hefe","vanille","kakao","schokolade","puderzucker","zimt","vanillezucker"] },
   { name:"Öle & Würzmittel", keywords:["olivenöl","öl","essig","balsamico","brühe","gemüsebrühe","hühnerbrühe","fond","kreuzkümmel","kurkuma","paprikapulver","currypulver","oregano","majoran","muskat","chili"] },
   { name:"Brot & Backwaren", keywords:["brot","brötchen","toast","tortilla","wrap","pita","baguette"] },
-  { name:"Getränke", keywords:["wasser","saft","wein","bier","kaffee","tee","sprudel","limonade"] },
+  { name:"Getränke", keywords:["wasser","saft","wein","bier","kaffee","tee","sprudel","limonade","cola"] },
   { name:"Sonstiges", keywords:[] },
 ];
 const SPECIAL = [
@@ -343,22 +358,25 @@ const LS = {
 };
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let meals       = LS.load('meals', DEFAULT_MEALS);
-let currentList = LS.load('currentList', []);
-let plannedDays = LS.load('plannedDays', {});
-let nextId      = LS.load('nextId', 7);
-let nextItemId  = LS.load('nextItemId', 1000);
-let hideChecked = LS.load('hideChecked', false);
+let meals            = LS.load('meals', DEFAULT_MEALS);
+let currentList      = LS.load('currentList', []);
+let plannedDays      = LS.load('plannedDays', {});
+let nextId           = LS.load('nextId', 7);
+let nextItemId       = LS.load('nextItemId', 1000);
+let hideChecked      = LS.load('hideChecked', false);
+let customCategories = LS.load('customCategories', {});
+let pendingCategoryChecks = []; // [{name, nk}] – warten auf Zuordnung
 let editingIdx=null, editingMealId=null, formIngredients=[], collapsedFolders={};
 let openDateKey=null, sheetCollapsedFolders={};
+let dbCollapsedFolders={}; // { folderName: true } = eingeklappt; fehlend/false = offen
 
 // ── Save & Sync ───────────────────────────────────────────────────────────────
 function saveState() {
   LS.save('meals',meals); LS.save('currentList',currentList); LS.save('plannedDays',plannedDays);
-  LS.save('nextId',nextId); LS.save('nextItemId',nextItemId);
+  LS.save('nextId',nextId); LS.save('nextItemId',nextItemId); LS.save('customCategories',customCategories);
   if(db){
     setSyncStatus('syncing'); _localWrite=true; clearTimeout(_localWriteTimer);
-    db.ref('household').set({meals,currentList,plannedDays,nextId,nextItemId})
+    db.ref('household').set({meals,currentList,plannedDays,nextId,nextItemId,customCategories})
       .then(()=>{ setSyncStatus('online'); _localWriteTimer=setTimeout(()=>{ _localWrite=false; },2000); })
       .catch(()=>{ setSyncStatus(''); _localWrite=false; });
   }
@@ -375,8 +393,9 @@ function initSync() {
     if(!data){ saveState(); return; }
     meals=data.meals||DEFAULT_MEALS; currentList=data.currentList||[];
     plannedDays=data.plannedDays||{}; nextId=data.nextId||7; nextItemId=data.nextItemId||1000;
+    customCategories=data.customCategories||{};
     LS.save('meals',meals); LS.save('currentList',currentList); LS.save('plannedDays',plannedDays);
-    LS.save('nextId',nextId); LS.save('nextItemId',nextItemId);
+    LS.save('nextId',nextId); LS.save('nextItemId',nextItemId); LS.save('customCategories',customCategories);
     if(editingIdx===null&&editingMealId===null){ renderAll(); showToast('Aktualisiert ✓'); }
   });
 }
@@ -384,8 +403,42 @@ function initSync() {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function categorize(name){
   const n=name.toLowerCase();
+  const nk=normalizeKey(name);
+  if(customCategories[nk]) return customCategories[nk];
   for(const cat of CATEGORIES){ if(cat.name==="Sonstiges")continue; for(const kw of cat.keywords){ if(n.includes(kw))return cat.name; } }
   return "Sonstiges";
+}
+function checkSonstiges(name){
+  if(!name||!name.trim()) return;
+  if(categorize(name)!=='Sonstiges') return;
+  const nk=normalizeKey(name);
+  if(pendingCategoryChecks.find(p=>p.nk===nk)) return;
+  pendingCategoryChecks.push({name:name.trim(), nk});
+  renderCategoryBanner();
+}
+function doAssignCategory(i){
+  const p=pendingCategoryChecks[i]; if(!p) return;
+  const sel=document.getElementById('catsel-'+i); if(!sel||!sel.value) return;
+  customCategories[p.nk]=sel.value;
+  pendingCategoryChecks.splice(i,1);
+  currentList=sortByCategory(currentList);
+  saveState(); renderShoppingList(); renderCategoryBanner();
+}
+function dismissCategoryCheck(i){
+  pendingCategoryChecks.splice(i,1); renderCategoryBanner();
+}
+function renderCategoryBanner(){
+  const el=document.getElementById('cat-assign-banner'); if(!el) return;
+  if(!pendingCategoryChecks.length){ el.style.display='none'; return; }
+  el.style.display='block';
+  const opts=CATEGORIES.filter(c=>c.name!=="Sonstiges").map(c=>`<option value="${c.name}">${c.name}</option>`).join('');
+  el.innerHTML=`<div class="cat-assign-header">📂 Kategorie nicht erkannt <span class="cat-assign-sub">Einmal zuordnen – dauerhaft auf allen Geräten gespeichert</span></div>`+
+    pendingCategoryChecks.map((p,i)=>`<div class="cat-assign-row">
+      <span class="cat-assign-name">"${p.name}"</span>
+      <select id="catsel-${i}" class="cat-assign-select"><option value="">Kategorie wählen …</option>${opts}</select>
+      <button class="btn sm primary" onclick="doAssignCategory(${i})">✓</button>
+      <button class="btn sm" onclick="dismissCategoryCheck(${i})">✕</button>
+    </div>`).join('');
 }
 function sortByCategory(list){
   const order=CATEGORIES.map(c=>c.name);
@@ -629,9 +682,17 @@ function _doSwap(targetDk){
   if(!_dragSrc||targetDk===_dragSrc){ _endDrag(); return; }
   const srcPlan=plannedDays[_dragSrc]?{...plannedDays[_dragSrc]}:null;
   const tgtPlan=plannedDays[targetDk]?{...plannedDays[targetDk]}:null;
-  // Update past/eaten based on new date position
-  if(srcPlan){ srcPlan.eaten=false; srcPlan.inList=false; }
-  if(tgtPlan){ tgtPlan.eaten=false; tgtPlan.inList=false; }
+  // Reset eaten (no longer valid at new date), preserve inList
+  if(srcPlan) srcPlan.eaten=false;
+  if(tgtPlan) tgtPlan.eaten=false;
+  // Migrate dayContributions in shopping list items (keys follow the date, not the plan)
+  currentList.forEach(item=>{
+    if(!item.dayContributions) return;
+    const sc=item.dayContributions[_dragSrc];
+    const tc=item.dayContributions[targetDk];
+    if(sc) item.dayContributions[targetDk]=sc; else delete item.dayContributions[targetDk];
+    if(tc) item.dayContributions[_dragSrc]=tc; else delete item.dayContributions[_dragSrc];
+  });
   if(srcPlan) plannedDays[targetDk]=srcPlan; else delete plannedDays[targetDk];
   if(tgtPlan) plannedDays[_dragSrc]=tgtPlan; else delete plannedDays[_dragSrc];
   _endDrag();
@@ -903,7 +964,18 @@ function saveEdit(i){
   currentList[i].qty=qty; currentList[i].name=name; editingIdx=null;
   currentList=sortByCategory(currentList); saveState(); renderShoppingList();
 }
-function toggleCheck(i){ currentList[i].checked=!currentList[i].checked; saveState(); renderShoppingList(); }
+function toggleCheck(i){
+  currentList[i].checked=!currentList[i].checked;
+  if(currentList[i].checked) currentList[i].checkedAt=Date.now();
+  else delete currentList[i].checkedAt;
+  saveState(); renderShoppingList();
+}
+function cleanupCheckedItems(){
+  const ONE_HOUR=3600000;
+  const before=currentList.length;
+  currentList=currentList.filter(i=>!(i.checked&&i.checkedAt&&Date.now()-i.checkedAt>ONE_HOUR));
+  if(currentList.length<before){ saveState(); updateBadge(); renderShoppingList(); }
+}
 function deleteItem(i){ currentList.splice(i,1); if(editingIdx===i)editingIdx=null; saveState(); updateBadge(); renderShoppingList(); }
 function addItem(){
   const amt=document.getElementById('new-qty').value.trim();
@@ -913,6 +985,7 @@ function addItem(){
   const qty=amt&&unit ? amt+' '+unit : (amt||unit);
   currentList.push({id:nextItemId++,qty,name,meals:[],combined:false,manual:true,checked:false,dayContributions:{}});
   currentList=sortByCategory(currentList); saveState(); updateBadge(); renderShoppingList();
+  checkSonstiges(name);
   setTimeout(()=>{ const e=document.getElementById('new-qty'); if(e)e.focus(); },50);
 }
 function clearShoppingList(){
@@ -978,11 +1051,55 @@ function saveRecipe(){
   if(editingMealId){ const idx=meals.findIndex(m=>m.id===editingMealId); if(idx>=0)meals[idx]={id:editingMealId,name,folder,ingredients:cleanIngs}; }
   else meals.push({id:nextId++,name,folder,ingredients:cleanIngs});
   saveState(); cancelForm(); renderDbList(); showToast(editingMealId?'Rezept gespeichert':'Rezept hinzugefügt');
+  // Zutaten auf unbekannte Kategorien prüfen
+  cleanIngs.forEach(i=>{ if(i.name) checkSonstiges(i.name); });
+}
+function _mealCardHtml(m){
+  return `<div class="card" style="margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span style="font-weight:600;font-size:15px;color:#1a1a1a">${m.name}</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn sm" onclick="showRecipeForm(${m.id})">Bearbeiten</button>
+        <button class="btn danger-sm" onclick="deleteMeal(${m.id})">Löschen</button>
+      </div>
+    </div>
+    <div style="font-size:13px;color:#888">${m.ingredients.map(i=>ingToStr(i)).join(' · ')}</div>
+  </div>`;
+}
+function toggleDbFolder(key){
+  dbCollapsedFolders[key]=!dbCollapsedFolders[key];
+  renderDbList();
 }
 function renderDbList(){
   const el=document.getElementById('db-list');
   if(!meals.length){ el.innerHTML='<div class="empty-state">Noch keine Rezepte.</div>'; return; }
-  el.innerHTML=meals.map(m=>`<div class="card" style="margin-bottom:10px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div><span style="font-weight:600;font-size:15px;color:#1a1a1a">${m.name}</span>${m.folder?`<span style="font-size:11px;color:#1D9E75;background:#E1F5EE;border-radius:8px;padding:2px 8px;margin-left:8px">${m.folder}</span>`:''}</div><div style="display:flex;gap:6px"><button class="btn sm" onclick="showRecipeForm(${m.id})">Bearbeiten</button><button class="btn danger-sm" onclick="deleteMeal(${m.id})">Löschen</button></div></div><div style="font-size:13px;color:#888">${m.ingredients.map(i=>ingToStr(i)).join(' · ')}</div></div>`).join('');
+
+  // Gruppen bilden
+  const folderMap={};
+  const noFolder=[];
+  meals.forEach(m=>{ if(m.folder){ if(!folderMap[m.folder])folderMap[m.folder]=[]; folderMap[m.folder].push(m); } else noFolder.push(m); });
+  const hasFolders=Object.keys(folderMap).length>0;
+
+  let html='';
+  const renderSection=(key,label,list)=>{
+    const isOpen=!dbCollapsedFolders[key];
+    const safe=key.replace(/'/g,"\\'");
+    html+=`<div class="db-folder-section">
+      <div class="folder-header${isOpen?'':' collapsed'}" onclick="toggleDbFolder('${safe}')">
+        <span class="folder-chevron">${isOpen?'▼':'▶'}</span>
+        <span class="folder-name">${label}</span>
+        <span class="folder-count">${list.length}</span>
+      </div>
+      <div class="db-folder-body"${isOpen?'':' style="display:none"'}>${list.map(_mealCardHtml).join('')}</div>
+    </div>`;
+  };
+
+  Object.keys(folderMap).sort().forEach(f=>renderSection(f,f,folderMap[f]));
+  if(noFolder.length){
+    if(hasFolders) renderSection('__none__','Ohne Ordner',noFolder);
+    else html+=noFolder.map(_mealCardHtml).join(''); // keine Ordner → kein Header nötig
+  }
+  el.innerHTML=html;
 }
 function deleteMeal(id){ if(!confirm('Rezept löschen?'))return; meals=meals.filter(m=>m.id!==id); saveState(); renderDbList(); showToast('Rezept gelöscht'); }
 
@@ -991,7 +1108,7 @@ function showTab(tab){
   ['planner','list','db'].forEach(t=>document.getElementById('tab-'+t).style.display=t===tab?'block':'none');
   document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['planner','list','db'][i]===tab));
   if(tab==='db'){ renderDbList(); document.getElementById('db-view').style.display='block'; document.getElementById('db-form').style.display='none'; }
-  if(tab==='list') renderShoppingList();
+  if(tab==='list'){ cleanupCheckedItems(); renderShoppingList(); }
 }
 
 // ── Service Worker ────────────────────────────────────────────────────────────
@@ -1009,6 +1126,8 @@ if('serviceWorker' in navigator){
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.getElementById('version-label').textContent=APP_VERSION;
 document.getElementById('btn-hide-checked').textContent=hideChecked?'Abgehakte anzeigen':'Abgehakte ausblenden';
+cleanupCheckedItems();
+setInterval(cleanupCheckedItems, 5*60*1000);
 renderWeekPlanner();
 renderShoppingList();
 updateBadge();
