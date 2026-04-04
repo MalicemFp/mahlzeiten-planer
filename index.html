@@ -328,7 +328,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v1.7.7';
+const APP_VERSION = 'v1.8.0';
 
 // ── Firebase Config ────────────────────────────────────────────────────────────
 const FIREBASE_CONFIG = {
@@ -476,7 +476,7 @@ function renderCategoryBanner(){
   const el=document.getElementById('cat-assign-banner'); if(!el) return;
   if(!pendingCategoryChecks.length){ el.style.display='none'; return; }
   el.style.display='block';
-  const opts=CATEGORIES.filter(c=>c.name!=="Sonstiges").map(c=>`<option value="${c.name}">${c.name}</option>`).join('');
+  const opts=CATEGORIES.map(c=>`<option value="${c.name}">${c.name}</option>`).join('');
   el.innerHTML=`<div class="cat-assign-header">📂 Kategorie nicht erkannt <span class="cat-assign-sub">Einmal zuordnen – dauerhaft auf allen Geräten gespeichert</span></div>`+
     pendingCategoryChecks.map((p,i)=>`<div class="cat-assign-row">
       <span class="cat-assign-name">"${p.name}"</span>
@@ -993,7 +993,11 @@ function renderShoppingList(){
     const cat=categorize(item.name); let catRow='';
     if(cat!==lastCat){ lastCat=cat; catRow=`<tr class="cat-header"><td colspan="4">${cat}</td></tr>`; }
     if(editingIdx===i){
-      return catRow+`<tr class="edit-row"><td class="check-cell"></td><td class="qty-cell"><input id="eq-${i}" value="${item.qty}" placeholder="Menge"/></td><td><input id="en-${i}" value="${item.name}" placeholder="Bezeichnung"/></td><td class="actions-cell"><button class="btn sm primary" onclick="saveEdit(${i})" style="margin-right:4px">OK</button><button class="btn sm" onclick="cancelEdit()">×</button></td></tr>`;
+      const currentCat=categorize(item.name);
+      const catOpts=CATEGORIES.map(c=>`<option value="${c.name}"${c.name===currentCat?' selected':''}>${c.name}</option>`).join('');
+      return catRow+
+        `<tr class="edit-row"><td class="check-cell"></td><td class="qty-cell"><input id="eq-${i}" value="${item.qty}" placeholder="Menge"/></td><td><input id="en-${i}" value="${item.name}" placeholder="Bezeichnung"/></td><td class="actions-cell"><button class="btn sm primary" onclick="saveEdit(${i})" style="margin-right:4px">OK</button><button class="btn sm" onclick="cancelEdit()">×</button></td></tr>`+
+        `<tr class="edit-row"><td></td><td colspan="3" style="padding-top:0"><select id="ecat-${i}" style="width:100%;padding:5px 6px;border:1px solid #ccc;border-radius:6px;font-size:13px">${catOpts}</select></td></tr>`;
     }
     return catRow+`<tr class="${item.checked?'checked':''}"><td class="check-cell"><div class="check-circle" onclick="toggleCheck(${i})"><svg viewBox="0 0 12 9"><polyline points="1,4 4.5,8 11,1"/></svg></div></td><td class="qty-cell">${item.qty||'–'}</td><td><span>${item.name}</span>${item.combined?`<span class="origin-text">aus: ${item.meals.join(', ')}</span>`:''}${item.manual?`<span class="origin-text">manuell</span>`:''}</td><td class="actions-cell"><button class="btn sm" onclick="startEdit(${i})" style="margin-right:4px">Bearb.</button><button class="btn danger-sm" onclick="deleteItem(${i})">–</button></td></tr>`;
   }).join('');
@@ -1006,6 +1010,11 @@ function cancelEdit(){ editingIdx=null; renderShoppingList(); }
 function saveEdit(i){
   const qty=document.getElementById('eq-'+i).value.trim(), name=document.getElementById('en-'+i).value.trim();
   if(!name){ alert('Bezeichnung darf nicht leer sein.'); return; }
+  const selCat=document.getElementById('ecat-'+i).value;
+  const autoCat=categorize(name);
+  if(selCat && selCat!==autoCat){
+    customCategories[normalizeKey(name)]=selCat;
+  }
   currentList[i].qty=qty; currentList[i].name=name; editingIdx=null;
   currentList=sortByCategory(currentList); saveState(); renderShoppingList();
 }
