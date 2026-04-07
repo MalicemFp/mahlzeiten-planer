@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mahlzeiten-planer-v18';
+const CACHE_NAME = 'mahlzeiten-planer-v19';
 const ASSETS = [
   './',
   './index.html',
@@ -25,6 +25,38 @@ self.addEventListener('activate', event => {
     )
   );
   self.clients.claim();
+});
+
+// Push: show notification when a push message arrives
+self.addEventListener('push', event => {
+  let data = { title: 'Mahlzeiten-Planer', body: 'Es gibt neue Änderungen.' };
+  if (event.data) {
+    try { data = event.data.json(); } catch(e) { data.body = event.data.text(); }
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: data.icon || './icon-192.png',
+      badge: data.badge || './icon-192.png',
+      tag: data.tag || 'mahlzeiten-update',
+      renotify: data.renotify || false
+    })
+  );
+});
+
+// Notification click: focus or open the app
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for (const client of list) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      return clients.openWindow('./');
+    })
+  );
 });
 
 // Fetch: network-first for HTML navigation, cache-first for assets
