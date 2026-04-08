@@ -340,7 +340,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v1.9.5';
+const APP_VERSION = 'v2.0.0';
 
 // ── Push Notifications Config ─────────────────────────────────────────────────
 // VAPID public key (generated; matching private key stored in Vercel env vars)
@@ -543,7 +543,7 @@ function sendPushToOthers() {
       keepalive: true
     }).catch(() => {});
   }
-  if (sent > 0) showToast('📤 Push gesendet…');
+
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
