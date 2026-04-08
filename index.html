@@ -340,7 +340,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v1.9.2';
+const APP_VERSION = 'v1.9.3';
 
 // ── Push Notifications Config ─────────────────────────────────────────────────
 // VAPID public key (generated; matching private key stored in Vercel env vars)
@@ -537,21 +537,17 @@ function sendPushToOthers() {
   _mealsChanged = false; _shoppingChanged = false;
   const pushData = _pushCache;
   if (!pushData) return;
+  let sent = 0;
   for (const [did, info] of Object.entries(pushData)) {
     if (did === deviceId || !info.subscription) continue;
-    const payload = JSON.stringify({ subscription: info.subscription, message: msg });
-    // sendBeacon ist zuverlässiger im iOS-Hintergrund als fetch()
-    const sent = navigator.sendBeacon
-      ? navigator.sendBeacon(PUSH_ENDPOINT, new Blob([payload], { type: 'application/json' }))
-      : false;
-    if (!sent) {
-      fetch(PUSH_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: payload
-      }).catch(() => {});
-    }
+    sent++;
+    fetch(PUSH_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: info.subscription, message: msg })
+    }).catch(() => {});
   }
+  if (sent > 0) showToast('📤 Push gesendet…');
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
