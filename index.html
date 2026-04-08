@@ -340,7 +340,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v1.9.0';
+const APP_VERSION = 'v1.9.1';
 
 // ── Push Notifications Config ─────────────────────────────────────────────────
 // VAPID public key (generated; matching private key stored in Vercel env vars)
@@ -429,6 +429,7 @@ if (!deviceId) { deviceId = 'dev_' + Math.random().toString(36).slice(2, 10); LS
 
 // ── Push change tracking ──────────────────────────────────────────────────────
 let _mealsChanged = false, _shoppingChanged = false, _visibilityTimer = null;
+let _pushCache = null; // Lokaler Cache der Push-Subscriptions aus Firebase
 
 let pendingCategoryChecks = []; // [{name, nk}] – warten auf Zuordnung
 let _selectedQuickIds = new Set();
@@ -453,6 +454,10 @@ function saveState() {
 function renderAll(){ renderWeekPlanner(); renderShoppingList(); updateBadge(); }
 
 function initSync() {
+  // Push-Subscriptions live cachen (für schnelles Senden im Hintergrund)
+  if (db) {
+    db.ref('push').on('value', snap => { _pushCache = snap.val(); });
+  }
   if(!db){ setSyncStatus(''); return; }
   db.ref('.info/connected').on('value',snap=>{ if(!snap.val())setSyncStatus(''); else if(!_localWrite)setSyncStatus('online'); });
   db.ref('household').on('value',snapshot=>{
@@ -516,28 +521,32 @@ async function onBellClick() {
   else { showToast('Benachrichtigungen nicht erlaubt.'); }
 }
 
-async function sendPushToOthers() {
+function sendPushToOthers() {
   _visibilityTimer = null;
-  if (!db || !deviceId || PUSH_ENDPOINT.includes('YOUR_VERCEL')) return;
+  if (!deviceId || PUSH_ENDPOINT.includes('YOUR_VERCEL')) return;
   if (!_mealsChanged && !_shoppingChanged) return;
   const msg = (_mealsChanged && _shoppingChanged)
     ? 'Mahlzeiten & Einkaufsliste wurden geändert.'
     : _mealsChanged ? 'Mahlzeitenplanung wurde geändert.'
     : 'Einkaufsliste wurde geändert.';
   _mealsChanged = false; _shoppingChanged = false;
-  try {
-    const snap = await db.ref('push').once('value');
-    const pushData = snap.val();
-    if (!pushData) return;
-    for (const [did, info] of Object.entries(pushData)) {
-      if (did === deviceId || !info.subscription) continue;
+  const pushData = _pushCache;
+  if (!pushData) return;
+  for (const [did, info] of Object.entries(pushData)) {
+    if (did === deviceId || !info.subscription) continue;
+    const payload = JSON.stringify({ subscription: info.subscription, message: msg });
+    // sendBeacon ist zuverlässiger im iOS-Hintergrund als fetch()
+    const sent = navigator.sendBeacon
+      ? navigator.sendBeacon(PUSH_ENDPOINT, new Blob([payload], { type: 'application/json' }))
+      : false;
+    if (!sent) {
       fetch(PUSH_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription: info.subscription, message: msg })
+        body: payload
       }).catch(() => {});
     }
-  } catch(e) { console.warn('Push senden fehlgeschlagen:', e); }
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -1392,7 +1401,7 @@ if('serviceWorker' in navigator){
 document.addEventListener('visibilitychange', () => {
   if(document.hidden){
     if(_mealsChanged || _shoppingChanged){
-      _visibilityTimer = setTimeout(sendPushToOthers, 60000);
+      _visibilityTimer = setTimeout(sendPushToOthers, 8000);
     }
   } else {
     clearTimeout(_visibilityTimer); _visibilityTimer = null;
