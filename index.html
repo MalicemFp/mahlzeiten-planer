@@ -340,7 +340,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v1.9.4';
+const APP_VERSION = 'v1.9.5';
 
 // ── Push Notifications Config ─────────────────────────────────────────────────
 // VAPID public key (generated; matching private key stored in Vercel env vars)
@@ -521,11 +521,6 @@ async function onBellClick() {
   else { showToast('Benachrichtigungen nicht erlaubt.'); }
 }
 
-function schedulePush() {
-  // Debounce: 5s nach letzter Änderung senden (kurz genug für App-Close)
-  clearTimeout(_visibilityTimer);
-  _visibilityTimer = setTimeout(sendPushToOthers, 5000);
-}
 function sendPushToOthers() {
   _visibilityTimer = null;
   if (!deviceId || PUSH_ENDPOINT.includes('YOUR_VERCEL')) return;
@@ -544,7 +539,8 @@ function sendPushToOthers() {
     fetch(PUSH_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscription: info.subscription, message: msg })
+      body: JSON.stringify({ subscription: info.subscription, message: msg }),
+      keepalive: true
     }).catch(() => {});
   }
   if (sent > 0) showToast('📤 Push gesendet…');
@@ -739,7 +735,7 @@ function renderDayRowHtml(dk, date, isPast){
 }
 
 function markEaten(dk){
-  _mealsChanged=true; schedulePush();
+  _mealsChanged=true;
   if(plannedDays[dk]){ plannedDays[dk].eaten=true; }
   saveState(); renderWeekPlanner();
 }
@@ -972,10 +968,10 @@ function pickSpecial(key){
   renderSheetBody(openDateKey); renderWeekPlanner();
 }
 
-function confirmDaySheet(){ _mealsChanged=true; schedulePush(); saveState(); closeDaySheet(); renderWeekPlanner(); }
+function confirmDaySheet(){ _mealsChanged=true; saveState(); closeDaySheet(); renderWeekPlanner(); }
 
 function pickClear(){
-  _mealsChanged=true; schedulePush();
+  _mealsChanged=true;
   const dk=openDateKey; if(!dk)return;
   const plan=plannedDays[dk];
   if(plan&&plan.inList) _removeDayContributions(dk);
@@ -984,7 +980,7 @@ function pickClear(){
 }
 
 function clearDay(dk){
-  _mealsChanged=true; schedulePush();
+  _mealsChanged=true;
   const plan=plannedDays[dk]; if(!plan)return;
   if(plan.inList) _removeDayContributions(dk);
   delete plannedDays[dk];
@@ -1018,7 +1014,7 @@ function _removeDayContributions(dk){
 }
 
 function addDayToList(dk){
-  _mealsChanged=true; schedulePush(); _shoppingChanged=true; schedulePush();
+  _mealsChanged=true; _shoppingChanged=true;
   const plan=plannedDays[dk];
   if(!plan||plan.type!=='meal'||!plan.meals||plan.meals.length===0)return;
   const allIng=[];
@@ -1050,7 +1046,7 @@ function addDayToList(dk){
 }
 
 function removeDayFromList(dk){
-  _mealsChanged=true; schedulePush(); _shoppingChanged=true; schedulePush();
+  _mealsChanged=true; _shoppingChanged=true;
   _removeDayContributions(dk);
   if(plannedDays[dk]) plannedDays[dk].inList=false;
   saveState(); renderWeekPlanner(); renderShoppingList(); updateBadge();
@@ -1118,7 +1114,7 @@ function renderShoppingList(){
 function startEdit(i){ editingIdx=i; renderShoppingList(); setTimeout(()=>{ const e=document.getElementById('en-'+i); if(e)e.focus(); },50); }
 function cancelEdit(){ editingIdx=null; renderShoppingList(); }
 function saveEdit(i){
-  _shoppingChanged=true; schedulePush();
+  _shoppingChanged=true;
   const qty=document.getElementById('eq-'+i).value.trim(), name=document.getElementById('en-'+i).value.trim();
   if(!name){ alert('Bezeichnung darf nicht leer sein.'); return; }
   const selCat=document.getElementById('ecat-'+i).value;
@@ -1130,7 +1126,7 @@ function saveEdit(i){
   currentList=sortByCategory(currentList); saveState(); renderShoppingList();
 }
 function toggleCheck(i){
-  _shoppingChanged=true; schedulePush();
+  _shoppingChanged=true;
   currentList[i].checked=!currentList[i].checked;
   if(currentList[i].checked) currentList[i].checkedAt=Date.now();
   else delete currentList[i].checkedAt;
@@ -1142,13 +1138,13 @@ function cleanupCheckedItems(){
   currentList=currentList.filter(i=>!(i.checked&&i.checkedAt&&Date.now()-i.checkedAt>ONE_HOUR));
   if(currentList.length<before){ saveState(); updateBadge(); renderShoppingList(); }
 }
-function deleteItem(i){ _shoppingChanged=true; schedulePush(); currentList.splice(i,1); if(editingIdx===i)editingIdx=null; saveState(); updateBadge(); renderShoppingList(); }
+function deleteItem(i){ _shoppingChanged=true; currentList.splice(i,1); if(editingIdx===i)editingIdx=null; saveState(); updateBadge(); renderShoppingList(); }
 function addItem(){
   const amt=document.getElementById('new-qty').value.trim();
   const unit=document.getElementById('new-unit').value;
   const name=document.getElementById('new-name').value.trim();
   if(!name){ document.getElementById('new-name').focus(); return; }
-  _shoppingChanged=true; schedulePush();
+  _shoppingChanged=true;
   const qty=amt&&unit ? amt+' '+unit : (amt||unit);
   currentList.push({id:nextItemId++,qty,name,meals:[],combined:false,manual:true,checked:false,dayContributions:{}});
   currentList=sortByCategory(currentList); saveState(); updateBadge(); renderShoppingList();
@@ -1158,7 +1154,7 @@ function addItem(){
 function clearShoppingList(){
   if(!currentList.length)return;
   if(!confirm('Einkaufsliste leeren?'))return;
-  _shoppingChanged=true; schedulePush();
+  _shoppingChanged=true;
   currentList=[];
   Object.values(plannedDays).forEach(p=>{ if(p)p.inList=false; });
   saveState(); updateBadge(); renderShoppingList(); renderWeekPlanner();
@@ -1361,7 +1357,7 @@ function toggleQuickItem(id){
 }
 function addSelectedQuickItems(){
   if(!_selectedQuickIds.size){ showToast('Bitte mindestens einen Artikel auswählen.'); return; }
-  _shoppingChanged=true; schedulePush();
+  _shoppingChanged=true;
   const count=_selectedQuickIds.size;
   closeQuickBuySheet();
   quickItems.filter(i=>_selectedQuickIds.has(i.id)).forEach(item=>{
