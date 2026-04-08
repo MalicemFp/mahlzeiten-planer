@@ -340,7 +340,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v1.9.3';
+const APP_VERSION = 'v1.9.4';
 
 // ── Push Notifications Config ─────────────────────────────────────────────────
 // VAPID public key (generated; matching private key stored in Vercel env vars)
@@ -522,9 +522,9 @@ async function onBellClick() {
 }
 
 function schedulePush() {
-  // Debounce: 30s nach letzter Änderung aus dem Vordergrund senden (zuverlässig)
+  // Debounce: 5s nach letzter Änderung senden (kurz genug für App-Close)
   clearTimeout(_visibilityTimer);
-  _visibilityTimer = setTimeout(sendPushToOthers, 30000);
+  _visibilityTimer = setTimeout(sendPushToOthers, 5000);
 }
 function sendPushToOthers() {
   _visibilityTimer = null;
