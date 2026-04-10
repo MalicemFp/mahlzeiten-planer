@@ -340,7 +340,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v2.0.0';
+const APP_VERSION = 'v2.0.1';
 
 // ── Push Notifications Config ─────────────────────────────────────────────────
 // VAPID public key (generated; matching private key stored in Vercel env vars)
@@ -1160,7 +1160,7 @@ function clearShoppingList(){
   saveState(); updateBadge(); renderShoppingList(); renderWeekPlanner();
   showToast('Liste geleert');
 }
-function updateBadge(){ const b=document.getElementById('list-badge'); b.textContent=currentList.length; b.style.display=currentList.length?'inline':'none'; }
+function updateBadge(){ const b=document.getElementById('list-badge'); const n=currentList.filter(i=>!i.checked).length; b.textContent=n; b.style.display=n?'inline':'none'; }
 function exportList(){
   if(!currentList.length){ alert('Keine Liste vorhanden.'); return; }
   let lastCat=null;
