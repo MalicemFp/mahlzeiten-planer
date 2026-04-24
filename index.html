@@ -195,6 +195,14 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 /* col-header-quick removed – Merkliste hat keine Menge-Spalte mehr */
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
 .toast.show { opacity: 1; }
+
+/* ── Autocomplete ─────────────────────────────────── */
+.ac-dropdown { position: fixed; background: white; border-radius: 10px; box-shadow: 0 4px 18px rgba(0,0,0,0.14); z-index: 9999; overflow: hidden; border: 0.5px solid rgba(0,0,0,0.08); }
+.ac-item { padding: 10px 14px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; border-bottom: 0.5px solid rgba(0,0,0,0.06); -webkit-tap-highlight-color: transparent; }
+.ac-item:last-child { border-bottom: none; }
+.ac-item.ac-sel { background: #f0faf6; }
+.ac-match { color: #1D9E75; font-weight: 600; }
+.ac-cat { font-size: 11px; color: #aaa; margin-left: 8px; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -270,7 +278,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
       <div class="recipe-form-card" style="margin-top:8px">
         <label class="form-label">Neuen Artikel hinzufügen</label>
         <div class="ing-row">
-          <input id="quick-new-name" class="ingname" placeholder="Bezeichnung" onkeydown="if(event.key==='Enter')addQuickItem()"/>
+          <input id="quick-new-name" class="ingname" placeholder="Bezeichnung" autocomplete="off" oninput="acSearch(this)" onfocus="acSearch(this)" onblur="acBlur()" onkeydown="acKey(event,this);if(!event.defaultPrevented&&event.key==='Enter')addQuickItem()"/>
           <button class="btn sm primary" onclick="addQuickItem()">+</button>
         </div>
       </div>
@@ -333,6 +341,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 </div>
 
 <div class="toast" id="toast"></div>
+<div id="ac-dropdown" class="ac-dropdown" style="display:none"></div>
 
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -340,7 +349,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v2.0.1';
+const APP_VERSION = 'v2.1.0';
 
 // ── Push Notifications Config ─────────────────────────────────────────────────
 // VAPID public key (generated; matching private key stored in Vercel env vars)
@@ -1080,7 +1089,7 @@ function renderShoppingList(){
       <option value="Bund">Bund</option>
       <option value="Dose">Dose</option>
     </select>
-    <input class="name" id="new-name" placeholder="Bezeichnung" onkeydown="if(event.key==='Enter')addItem()"/>
+    <input class="name" id="new-name" placeholder="Bezeichnung" autocomplete="off" oninput="acSearch(this)" onfocus="acSearch(this)" onblur="acBlur()" onkeydown="acKey(event,this);if(!event.defaultPrevented&&event.key==='Enter')addItem()"/>
     <button class="btn primary" onclick="addItem()">+</button>
   </div>`;
 
@@ -1193,7 +1202,7 @@ function getFolderValue(){
 function unitSelect(sel){ return`<select class="unit">${UNITS_LIST.map(u=>`<option value="${u}" ${u===sel?'selected':''}>${u||'–'}</option>`).join('')}</select>`; }
 function renderIngList(){
   const el=document.getElementById('ing-list');
-  el.innerHTML=formIngredients.map((ing,i)=>`<div class="ing-row"><input class="amt" type="text" inputmode="decimal" value="${ing.amt}" placeholder="Menge" oninput="formIngredients[${i}].amt=this.value"/>${unitSelect(ing.unit).replace('<select',`<select onchange="formIngredients[${i}].unit=this.value"`)}<input class="ingname" type="text" value="${ing.name}" placeholder="Bezeichnung" oninput="formIngredients[${i}].name=this.value"/><button class="btn icon-btn" onclick="removeIngRow(${i})">×</button></div>`).join('');
+  el.innerHTML=formIngredients.map((ing,i)=>`<div class="ing-row"><input class="amt" type="text" inputmode="decimal" value="${ing.amt}" placeholder="Menge" oninput="formIngredients[${i}].amt=this.value"/>${unitSelect(ing.unit).replace('<select',`<select onchange="formIngredients[${i}].unit=this.value"`)}<input class="ingname" type="text" value="${ing.name}" placeholder="Bezeichnung" autocomplete="off" oninput="formIngredients[${i}].name=this.value;acSearch(this)" onfocus="acSearch(this)" onblur="acBlur()" onkeydown="acKey(event,this)"/><button class="btn icon-btn" onclick="removeIngRow(${i})">×</button></div>`).join('');
 }
 function addIngRow(){ formIngredients.push({amt:'',unit:'',name:''}); renderIngList(); setTimeout(()=>{ const rows=document.querySelectorAll('.ing-row'); if(rows.length)rows[rows.length-1].querySelector('.ingname').focus(); },50); }
 function removeIngRow(i){ formIngredients.splice(i,1); renderIngList(); }
@@ -1367,6 +1376,94 @@ function addSelectedQuickItems(){
   currentList=sortByCategory(currentList);
   saveState(); updateBadge(); renderShoppingList();
   showToast(count+' Artikel hinzugefügt ✓');
+}
+
+// ── Autocomplete ──────────────────────────────────────────────────────────────
+let _acTarget = null, _acIdx = -1;
+
+function acSuggestions(q) {
+  q = q.trim().toLowerCase();
+  if (!q) return [];
+  const seen = new Set(), results = [];
+  const add = (name, cat) => {
+    const k = normalizeKey(name);
+    if (seen.has(k)) return;
+    seen.add(k);
+    results.push({ name, cat });
+  };
+  meals.forEach(m => m.ingredients.forEach(i => { if (i.name) add(i.name, null); }));
+  currentList.forEach(i => { if (i.name) add(i.name, null); });
+  quickItems.forEach(i => { if (i.name) add(i.name, null); });
+  CATEGORIES.forEach(cat => cat.keywords.forEach(kw => {
+    add(kw.charAt(0).toUpperCase() + kw.slice(1), cat.name);
+  }));
+  results.forEach(r => { if (!r.cat) r.cat = categorize(r.name); });
+  const starts = results.filter(r => r.name.toLowerCase().startsWith(q));
+  const contains = results.filter(r => !r.name.toLowerCase().startsWith(q) && r.name.toLowerCase().includes(q));
+  return [...starts, ...contains].slice(0, 6);
+}
+
+function acSearch(input) {
+  _acTarget = input;
+  const q = input.value;
+  const items = acSuggestions(q);
+  const dd = document.getElementById('ac-dropdown');
+  if (!items.length || !q.trim()) { acClose(); return; }
+  const qLo = q.trim().toLowerCase();
+  dd.innerHTML = items.map((item) => {
+    const lo = item.name.toLowerCase();
+    const qi = lo.indexOf(qLo);
+    const hl = qi >= 0
+      ? item.name.slice(0,qi) + '<span class="ac-match">' + item.name.slice(qi, qi+qLo.length) + '</span>' + item.name.slice(qi+qLo.length)
+      : item.name;
+    return `<div class="ac-item" data-name="${item.name.replace(/"/g,'&quot;')}" onmousedown="acPick(event)">${hl}<span class="ac-cat">${item.cat}</span></div>`;
+  }).join('');
+  _acIdx = -1;
+  const rect = input.getBoundingClientRect();
+  dd.style.display = 'block';
+  dd.style.left = rect.left + 'px';
+  dd.style.width = rect.width + 'px';
+  dd.style.top = (rect.bottom + 4) + 'px';
+  if (rect.bottom + 4 + dd.offsetHeight > window.innerHeight) {
+    dd.style.top = (rect.top - dd.offsetHeight - 4) + 'px';
+  }
+}
+
+function acPick(e) {
+  e.preventDefault();
+  const name = e.currentTarget.dataset.name;
+  if (_acTarget) { _acTarget.value = name; _acTarget.dispatchEvent(new Event('input')); }
+  acClose();
+}
+
+function acBlur() { setTimeout(acClose, 150); }
+
+function acClose() {
+  const dd = document.getElementById('ac-dropdown');
+  if (dd) { dd.style.display = 'none'; dd.innerHTML = ''; }
+  _acIdx = -1;
+}
+
+function acKey(e, input) {
+  const dd = document.getElementById('ac-dropdown');
+  if (!dd || dd.style.display === 'none') return;
+  const items = dd.querySelectorAll('.ac-item');
+  if (!items.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _acIdx = Math.min(_acIdx + 1, items.length - 1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _acIdx = Math.max(_acIdx - 1, -1);
+  } else if (e.key === 'Enter' && _acIdx >= 0) {
+    e.preventDefault();
+    const name = items[_acIdx].dataset.name;
+    if (input) { input.value = name; input.dispatchEvent(new Event('input')); }
+    acClose(); return;
+  } else if (e.key === 'Escape') {
+    acClose(); return;
+  } else { return; }
+  items.forEach((el, i) => el.classList.toggle('ac-sel', i === _acIdx));
 }
 
 // ── Tab navigation ────────────────────────────────────────────────────────────
