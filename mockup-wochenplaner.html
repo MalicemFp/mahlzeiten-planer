@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Wochenplaner – Entwurf v3</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; }
+.banner { background: #1D9E75; color: white; padding: 10px 16px; font-size: 12px; text-align: center; }
+.banner strong { display: block; font-size: 14px; margin-bottom: 2px; }
+.app-header { background: white; border-bottom: 0.5px solid rgba(0,0,0,0.12); padding: 14px 20px; }
+.app-header h1 { font-size: 20px; font-weight: 600; }
+.app-header p { font-size: 13px; color: #888; margin-top: 2px; }
+.tab-bar { display: flex; background: white; border-bottom: 0.5px solid rgba(0,0,0,0.12); }
+.tab { padding: 12px 20px; font-size: 14px; color: #888; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; }
+.tab.active { color: #1D9E75; border-bottom-color: #1D9E75; font-weight: 500; }
+.content { padding: 16px; max-width: 800px; margin: 0 auto; }
+.section-title { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+.card { background: white; border: 0.5px solid rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; margin-bottom: 14px; }
+
+/* ── Tageszeilen ─────────────────────────────── */
+.day-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 0.5px solid rgba(0,0,0,0.07);
+  gap: 12px;
+  min-height: 54px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.1s;
+}
+.day-row:last-child { border-bottom: none; }
+.day-row:active { background: #f9f9f9; }
+.day-row.is-today { background: #F0FBF7; }
+
+.day-date-col { flex-shrink: 0; width: 52px; }
+.day-label { font-size: 13px; font-weight: 600; color: #888; }
+.day-date  { font-size: 11px; color: #ccc; margin-top: 1px; }
+.is-today .day-label { color: #1D9E75; }
+.is-today .day-date  { color: #9dd9c5; }
+
+.day-content { flex: 1; min-width: 0; }
+
+/* single meal */
+.meal-line { display: flex; align-items: baseline; gap: 6px; }
+.meal-line + .meal-line { margin-top: 5px; }
+.meal-dot { width: 5px; height: 5px; border-radius: 50%; background: #1D9E75; flex-shrink: 0; margin-bottom: 1px; }
+.meal-dot.second { background: #7dcab0; }
+.meal-name-text { font-size: 14px; font-weight: 500; color: #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.meal-folder-text { font-size: 11px; color: #bbb; }
+
+/* special */
+.day-special     { font-size: 14px; color: #555; }
+.day-special-sub { font-size: 11px; color: #bbb; margin-top: 2px; }
+.day-empty       { font-size: 14px; color: #ccc; }
+
+.day-action { flex-shrink: 0; }
+.btn-add {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1.5px solid rgba(0,0,0,0.14);
+  background: white; color: #bbb; font-size: 20px;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
+}
+.btn-remove {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: none; background: none;
+  color: #ccc; font-size: 20px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; line-height: 1;
+}
+.btn-remove:active { color: #c0392b; }
+
+/* ── Buttons ─────────────────────────────────── */
+.btn { padding: 9px 18px; border-radius: 9px; border: 0.5px solid rgba(0,0,0,0.2); background: white; color: #1a1a1a; font-size: 14px; cursor: pointer; font-family: inherit; }
+.btn.primary { background: #1D9E75; border-color: #1D9E75; color: white; }
+.btn-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+
+/* ── Modal ───────────────────────────────────── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 200;
+  display: flex; align-items: flex-end;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.2s;
+}
+.overlay.open { opacity: 1; pointer-events: all; }
+.sheet {
+  background: white;
+  width: 100%;
+  border-radius: 20px 20px 0 0;
+  max-height: 82vh;
+  display: flex; flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 0.25s cubic-bezier(.32,.72,0,1);
+}
+.overlay.open .sheet { transform: translateY(0); }
+.sheet-header {
+  padding: 16px 16px 12px;
+  border-bottom: 0.5px solid rgba(0,0,0,0.1);
+  flex-shrink: 0;
+}
+.sheet-title { font-size: 15px; font-weight: 600; }
+.sheet-subtitle { font-size: 12px; color: #aaa; margin-top: 3px; }
+.sheet-close-row { display: flex; justify-content: space-between; align-items: flex-start; }
+.sheet-close { font-size: 24px; color: #aaa; cursor: pointer; background: none; border: none; line-height: 1; padding: 0; }
+.sheet-body { overflow-y: auto; padding: 10px 16px 24px; }
+
+/* Special options */
+.special-btn {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 0.5px solid rgba(0,0,0,0.1);
+  background: white;
+  width: 100%; text-align: left;
+  cursor: pointer; font-family: inherit;
+  margin-bottom: 8px;
+  transition: background 0.1s;
+}
+.special-btn.selected { border-color: #1D9E75; background: #F0FBF7; }
+.special-btn:active { background: #f5f5f5; }
+.special-icon { font-size: 20px; width: 28px; text-align: center; }
+.special-label { font-size: 14px; font-weight: 500; }
+.special-sub { font-size: 11px; color: #aaa; }
+.special-check { margin-left: auto; color: #1D9E75; font-size: 17px; }
+
+/* Section labels */
+.sheet-section-label {
+  font-size: 11px; font-weight: 600; color: #aaa;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 12px 0 6px;
+}
+.folder-label {
+  font-size: 11px; font-weight: 600; color: #ddd;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 8px 0 4px;
+}
+
+/* Meal rows in sheet */
+.meal-pick-row {
+  display: flex; align-items: center;
+  padding: 11px 0;
+  border-bottom: 0.5px solid rgba(0,0,0,0.07);
+  cursor: pointer;
+  gap: 10px;
+}
+.meal-pick-row:last-child { border-bottom: none; }
+.meal-pick-row:active { opacity: 0.6; }
+.pick-checkbox {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1.5px solid rgba(0,0,0,0.18);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all 0.15s;
+}
+.pick-checkbox.checked { background: #1D9E75; border-color: #1D9E75; }
+.pick-checkbox.checked::after { content: '✓'; color: white; font-size: 12px; font-weight: 700; }
+.pick-checkbox.second-checked { background: #7dcab0; border-color: #7dcab0; }
+.pick-checkbox.second-checked::after { content: '✓'; color: white; font-size: 12px; font-weight: 700; }
+.pick-name { font-size: 14px; font-weight: 500; flex: 1; }
+.pick-folder { font-size: 11px; color: #bbb; }
+.pick-limit-hint { font-size: 12px; color: #f39c12; margin: 6px 0 2px; }
+
+/* Clear row */
+.clear-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 14px 0 2px;
+  cursor: pointer; color: #aaa; font-size: 14px;
+}
+.clear-row:active { opacity: 0.6; }
+
+/* Sheet footer */
+.sheet-footer {
+  padding: 12px 16px;
+  border-top: 0.5px solid rgba(0,0,0,0.1);
+  flex-shrink: 0;
+  display: flex; gap: 10px;
+}
+.btn-confirm {
+  flex: 1; padding: 13px; border-radius: 12px;
+  background: #1D9E75; color: white;
+  border: none; font-size: 15px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+  transition: background 0.15s;
+}
+.btn-confirm:active { background: #0F6E56; }
+.btn-confirm:disabled { background: #ccc; cursor: default; }
+.btn-cancel {
+  padding: 13px 18px; border-radius: 12px;
+  background: #f0f0f0; color: #666;
+  border: none; font-size: 15px;
+  cursor: pointer; font-family: inherit;
+}
+.btn-cancel:active { background: #e0e0e0; }
+</style>
+</head>
+<body>
+
+<div class="banner">
+  <strong>📐 Entwurf v3 – nicht die echte App</strong>
+  Pro Tag bis zu 2 Gerichte wählbar · Tippe auf einen Tag
+</div>
+
+<div class="app-header">
+  <h1>Mahlzeiten-Planer</h1>
+  <p>Wochenplanung &amp; Einkaufsliste</p>
+</div>
+
+<div class="tab-bar">
+  <div class="tab active">Wochenplaner</div>
+  <div class="tab">Einkaufsliste</div>
+  <div class="tab">Rezepte</div>
+</div>
+
+<div class="content">
+  <p class="section-title" id="week-subtitle">Nächste 7 Tage</p>
+  <div class="card" id="week-card"></div>
+  <div class="btn-row">
+    <button class="btn primary" onclick="generateList()">Zur Einkaufsliste hinzufügen</button>
+    <button class="btn" onclick="clearAll()">Alles leeren</button>
+  </div>
+</div>
+
+<!-- Sheet -->
+<div class="overlay" id="overlay" onclick="overlayClick(event)">
+  <div class="sheet">
+    <div class="sheet-header">
+      <div class="sheet-close-row">
+        <div>
+          <div class="sheet-title" id="sheet-title">Mahlzeit wählen</div>
+          <div class="sheet-subtitle" id="sheet-subtitle"></div>
+        </div>
+      </div>
+    </div>
+    <div class="sheet-body" id="sheet-body"></div>
+    <div class="sheet-footer">
+      <button class="btn-cancel" onclick="closeSheet()">Abbrechen</button>
+      <button class="btn-confirm" id="btn-confirm" onclick="confirmSheet()">Übernehmen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const MEALS = [
+  { id:1, name:'Spaghetti Bolognese', folder:'Pasta' },
+  { id:2, name:'Hähnchen-Curry',      folder:'Asiatisch' },
+  { id:3, name:'Gemüsesuppe',          folder:'Suppen' },
+  { id:4, name:'Lachs mit Gemüse',    folder:'Fisch' },
+  { id:5, name:'Linsensuppe',          folder:'Suppen' },
+  { id:6, name:'Pizza Margherita',     folder:'Pasta' },
+];
+const SPECIAL = [
+  { key:'restaurant', icon:'🍽️', label:'Restaurant',            sub:'Auswärts essen' },
+  { key:'delivery',   icon:'🛵', label:'Lieferdienst',          sub:'Pizza, Sushi, …' },
+  { key:'none',       icon:'✓',  label:'Kein Gericht benötigt', sub:'Reste, Fastentag, …' },
+];
+
+const TODAY = new Date(); TODAY.setHours(0,0,0,0);
+function addDays(d,n){ const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+function dateKey(d){ return d.toISOString().slice(0,10); }
+
+// plannedDays: { "2026-03-28": { type: "meal"|"restaurant"|"delivery"|"none", meals?: [{mealId,name,folder}] } }
+const plannedDays = {};
+// Demo data
+plannedDays[dateKey(addDays(TODAY,0))] = { type:'meal', meals:[{mealId:1,name:'Spaghetti Bolognese',folder:'Pasta'},{mealId:4,name:'Lachs mit Gemüse',folder:'Fisch'}] };
+plannedDays[dateKey(addDays(TODAY,2))] = { type:'restaurant' };
+plannedDays[dateKey(addDays(TODAY,4))] = { type:'meal', meals:[{mealId:2,name:'Hähnchen-Curry',folder:'Asiatisch'}] };
+
+let openDateKey = null;
+
+function get7Days(){ return Array.from({length:7},(_,i)=>addDays(TODAY,i)); }
+function dayLabel(d,i){ if(i===0)return'Heute'; if(i===1)return'Morgen'; return['So','Mo','Di','Mi','Do','Fr','Sa'][d.getDay()]; }
+function dayDateStr(d){ return d.toLocaleDateString('de-DE',{day:'numeric',month:'short'}); }
+
+function renderWeek(){
+  const days=get7Days();
+  const mealDays=days.filter(d=>{ const p=plannedDays[dateKey(d)]; return p&&p.type==='meal'; });
+  const totalMeals=mealDays.reduce((s,d)=>{ const p=plannedDays[dateKey(d)]; return s+(p.meals?p.meals.length:0); },0);
+  document.getElementById('week-subtitle').textContent=
+    totalMeals>0?`${totalMeals} Gericht${totalMeals!==1?'e':''} diese Woche geplant`:'Nächste 7 Tage';
+
+  document.getElementById('week-card').innerHTML=days.map((date,idx)=>{
+    const dk=dateKey(date);
+    const plan=plannedDays[dk];
+    const isToday=idx===0;
+    let contentHtml='', actionHtml='';
+
+    if(!plan){
+      contentHtml=`<div class="day-empty">Tippen zum Planen</div>`;
+      actionHtml=`<div class="btn-add">+</div>`;
+    } else if(plan.type==='meal'){
+      const m=plan.meals||[];
+      contentHtml=m.map((meal,mi)=>
+        `<div class="meal-line">
+          <div class="meal-dot ${mi>0?'second':''}"></div>
+          <div>
+            <div class="meal-name-text">${meal.name}</div>
+          </div>
+        </div>`
+      ).join('');
+      actionHtml=`<button class="btn-remove" onclick="removeDay(event,'${dk}')">×</button>`;
+    } else {
+      const sp=SPECIAL.find(s=>s.key===plan.type);
+      contentHtml=`<div class="day-special">${sp.icon}&ensp;${sp.label}</div><div class="day-special-sub">${sp.sub}</div>`;
+      actionHtml=`<button class="btn-remove" onclick="removeDay(event,'${dk}')">×</button>`;
+    }
+
+    return`<div class="day-row ${isToday?'is-today':''}" onclick="openSheet('${dk}',${idx})">
+      <div class="day-date-col">
+        <div class="day-label">${dayLabel(date,idx)}</div>
+        <div class="day-date">${dayDateStr(date)}</div>
+      </div>
+      <div class="day-content">${contentHtml}</div>
+      <div class="day-action">${actionHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function openSheet(dk,idx){
+  openDateKey=dk;
+  const days=get7Days();
+  const date=days[idx];
+  document.getElementById('sheet-title').textContent=
+    idx===0?'Heute':idx===1?'Morgen':dayLabel(date,idx)+', '+dayDateStr(date);
+  renderSheetBody(dk);
+  document.getElementById('overlay').classList.add('open');
+}
+
+function renderSheetBody(dk){
+  const plan=plannedDays[dk];
+  const selectedMeals=(plan&&plan.type==='meal'&&plan.meals)?plan.meals:[];
+  const selectedIds=selectedMeals.map(m=>m.mealId);
+  const atMax=selectedIds.length>=2;
+
+  document.getElementById('sheet-subtitle').textContent=
+    atMax?'2 Gerichte ausgewählt – eines abwählen um zu wechseln':
+    selectedIds.length===1?'1 Gericht ausgewählt – optional ein zweites hinzufügen':
+    'Gericht oder Option wählen';
+
+  // Update confirm button label
+  const confirmBtn=document.getElementById('btn-confirm');
+  if(confirmBtn){
+    const n=selectedIds.length;
+    confirmBtn.textContent = n===0 ? 'Übernehmen' :
+      n===1 ? '1 Gericht übernehmen' : '2 Gerichte übernehmen';
+    confirmBtn.disabled = false;
+  }
+
+  // Special options
+  let html=`<div class="sheet-section-label">Sonderoptionen</div>`;
+  SPECIAL.forEach(sp=>{
+    const sel=plan&&plan.type===sp.key;
+    html+=`<button class="special-btn${sel?' selected':''}" onclick="pickSpecial('${sp.key}')">
+      <span class="special-icon">${sp.icon}</span>
+      <div><div class="special-label">${sp.label}</div><div class="special-sub">${sp.sub}</div></div>
+      ${sel?'<span class="special-check">✓</span>':''}
+    </button>`;
+  });
+
+  // Meal list
+  html+=`<div class="sheet-section-label">Rezepte</div>`;
+  if(atMax) html+=`<div class="pick-limit-hint">⚠ Maximal 2 Gerichte pro Tag — ein Gericht abwählen um ein anderes zu wählen.</div>`;
+
+  const grouped={};
+  MEALS.forEach(m=>{ const f=m.folder||'Ohne Ordner'; if(!grouped[f])grouped[f]=[]; grouped[f].push(m); });
+
+  Object.entries(grouped).forEach(([folder,meals])=>{
+    html+=`<div class="folder-label">${folder}</div>`;
+    meals.forEach(m=>{
+      const posInSelected=selectedIds.indexOf(m.id);
+      const isFirst=posInSelected===0;
+      const isSecond=posInSelected===1;
+      const isSelected=posInSelected>=0;
+      const isDisabled=atMax&&!isSelected;
+      html+=`<div class="meal-pick-row" onclick="${isDisabled?'':'pickMeal('+m.id+')'}" style="${isDisabled?'opacity:0.35;cursor:default':''}">
+        <div class="pick-checkbox ${isFirst?'checked':isSecond?'second-checked':''}"></div>
+        <div style="flex:1;min-width:0">
+          <div class="pick-name">${m.name}</div>
+          <div class="pick-folder">${m.folder}${isSecond?' · 2. Gericht':isFirst&&selectedIds.length>1?' · 1. Gericht':''}</div>
+        </div>
+      </div>`;
+    });
+  });
+
+  if(plan){
+    html+=`<div class="clear-row" onclick="pickClear()"><span>↩</span><span>Eintrag entfernen</span></div>`;
+  }
+
+  document.getElementById('sheet-body').innerHTML=html;
+}
+
+function pickMeal(mealId){
+  const plan=plannedDays[openDateKey];
+  const currentMeals=(plan&&plan.type==='meal'&&plan.meals)?[...plan.meals]:[];
+  const idx=currentMeals.findIndex(m=>m.mealId===mealId);
+
+  if(idx>=0){
+    // Already selected — deselect
+    currentMeals.splice(idx,1);
+    if(currentMeals.length===0) delete plannedDays[openDateKey];
+    else plannedDays[openDateKey]={type:'meal',meals:currentMeals};
+  } else if(currentMeals.length<2){
+    // Add
+    const m=MEALS.find(x=>x.id===mealId);
+    currentMeals.push({mealId,name:m.name,folder:m.folder});
+    plannedDays[openDateKey]={type:'meal',meals:currentMeals};
+  }
+  // Sheet bleibt offen — Inhalt aktualisieren, Wochenliste im Hintergrund auch
+  renderSheetBody(openDateKey);
+  renderWeek();
+}
+
+function pickSpecial(key){
+  plannedDays[openDateKey]={type:key};
+  renderSheetBody(openDateKey);
+  renderWeek();
+}
+function confirmSheet(){
+  closeSheet();
+  renderWeek();
+}
+function pickClear(){
+  delete plannedDays[openDateKey];
+  closeSheet(); renderWeek();
+}
+function removeDay(e,dk){
+  e.stopPropagation(); delete plannedDays[dk]; renderWeek();
+}
+function clearAll(){
+  Object.keys(plannedDays).forEach(k=>delete plannedDays[k]); renderWeek();
+}
+function overlayClick(e){
+  if(e.target===document.getElementById('overlay'))closeSheet();
+}
+function closeSheet(){
+  document.getElementById('overlay').classList.remove('open'); openDateKey=null;
+}
+function generateList(){
+  const days=get7Days();
+  const meals=[];
+  days.forEach(d=>{ const p=plannedDays[dateKey(d)]; if(p&&p.type==='meal')p.meals.forEach(m=>meals.push(m)); });
+  if(!meals.length){alert('Keine Gerichte geplant.');return;}
+  alert(`✅ Einkaufsliste für ${meals.length} Gericht${meals.length!==1?'e':''} generiert:\n\n${meals.map(m=>'• '+m.name).join('\n')}\n\n(In der echten App öffnet sich die Einkaufsliste.)`);
+}
+
+renderWeek();
+</script>
+</body>
+</html>

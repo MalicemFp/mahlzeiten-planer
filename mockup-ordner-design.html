@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ordner-Design Mockup</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; padding: 20px; }
+h2 { font-size: 13px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+.cols { display: flex; gap: 20px; flex-wrap: wrap; }
+.col { flex: 1; min-width: 280px; }
+.panel { background: white; border-radius: 14px; overflow: hidden; border: 0.5px solid rgba(0,0,0,0.1); margin-bottom: 20px; }
+.panel-title { font-size: 12px; font-weight: 700; color: white; padding: 8px 14px; letter-spacing: 0.04em; }
+.panel-title.old { background: #aaa; }
+.panel-title.new { background: #1D9E75; }
+
+/* ── AKTUELLES DESIGN ── */
+.old .folder-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px 8px;
+  cursor: pointer;
+  font-size: 12px; font-weight: 600; color: #999;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  border-bottom: 0.5px solid rgba(0,0,0,0.08);
+  user-select: none;
+}
+.old .folder-chevron { font-size: 9px; color: #bbb; }
+.old .folder-name { flex: 1; }
+.old .folder-count { font-size: 11px; color: #ccc; font-weight: 400; background: #f0f0f0; border-radius: 10px; padding: 2px 8px; }
+.old .meal-row { padding: 11px 14px; border-bottom: 0.5px solid rgba(0,0,0,0.06); font-size: 14px; color: #1a1a1a; }
+
+/* ── VORGESCHLAGENES DESIGN ── */
+.new .folder-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px;
+  min-height: 48px;
+  cursor: pointer;
+  font-size: 14px; font-weight: 600; color: #2a2a2a;
+  background: #f2fbf7;
+  border-bottom: 0.5px solid rgba(29,158,117,0.15);
+  user-select: none;
+  transition: background 0.15s;
+}
+.new .folder-header:active { background: #e0f5ec; }
+.new .folder-chevron {
+  font-size: 11px; color: #1D9E75;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.new .folder-header.open .folder-chevron { transform: rotate(90deg); }
+.new .folder-name { flex: 1; }
+.new .folder-count {
+  font-size: 12px; color: #1D9E75; font-weight: 500;
+  background: #d8f2e8; border-radius: 10px; padding: 2px 9px;
+}
+.new .meal-row { padding: 13px 16px; border-bottom: 0.5px solid rgba(0,0,0,0.06); font-size: 14px; color: #1a1a1a; }
+
+/* Gemeinsam */
+.meal-dot { width: 8px; height: 8px; border-radius: 50%; background: #1D9E75; display: inline-block; margin-right: 8px; vertical-align: middle; }
+</style>
+</head>
+<body>
+
+<div style="margin-bottom:20px">
+  <div style="font-size:20px;font-weight:700;margin-bottom:4px">Ordner-Design Vergleich</div>
+  <div style="font-size:13px;color:#888">Auswahlmenü im Wochenplaner — Ordner aufgeklappt</div>
+</div>
+
+<div class="cols">
+
+  <!-- AKTUELL -->
+  <div class="col old">
+    <h2>Aktuell</h2>
+    <div class="panel">
+      <div class="panel-title old">Gericht auswählen</div>
+      <div class="folder-header">
+        <span class="folder-chevron">▶</span>
+        <span class="folder-name">Pasta & Reis</span>
+        <span class="folder-count">3</span>
+      </div>
+      <div class="folder-header open" style="border-bottom:none">
+        <span class="folder-chevron" style="transform:rotate(90deg)">▶</span>
+        <span class="folder-name">Fleischgerichte</span>
+        <span class="folder-count">4</span>
+      </div>
+      <div class="meal-row"><span class="meal-dot"></span>Spaghetti Bolognese</div>
+      <div class="meal-row"><span class="meal-dot"></span>Schnitzel mit Kartoffeln</div>
+      <div class="meal-row"><span class="meal-dot"></span>Hähnchen vom Grill</div>
+      <div class="meal-row"><span class="meal-dot"></span>Rindergulasch</div>
+      <div class="folder-header" style="border-bottom:none">
+        <span class="folder-chevron">▶</span>
+        <span class="folder-name">Vegetarisch</span>
+        <span class="folder-count">2</span>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#999;margin-top:6px;padding:0 4px">
+      Tap-Bereich: ~30px · Schrift: 12px uppercase · Farbe: grau
+    </div>
+  </div>
+
+  <!-- VORSCHLAG -->
+  <div class="col new">
+    <h2>Vorschlag</h2>
+    <div class="panel">
+      <div class="panel-title new">Gericht auswählen</div>
+      <div class="folder-header">
+        <span class="folder-chevron">▶</span>
+        <span class="folder-name">Pasta & Reis</span>
+        <span class="folder-count">3</span>
+      </div>
+      <div class="folder-header open" style="border-bottom: 0.5px solid rgba(0,0,0,0.06)">
+        <span class="folder-chevron" style="transform:rotate(90deg)">▶</span>
+        <span class="folder-name">Fleischgerichte</span>
+        <span class="folder-count">4</span>
+      </div>
+      <div class="meal-row"><span class="meal-dot"></span>Spaghetti Bolognese</div>
+      <div class="meal-row"><span class="meal-dot"></span>Schnitzel mit Kartoffeln</div>
+      <div class="meal-row"><span class="meal-dot"></span>Hähnchen vom Grill</div>
+      <div class="meal-row"><span class="meal-dot"></span>Rindergulasch</div>
+      <div class="folder-header">
+        <span class="folder-chevron">▶</span>
+        <span class="folder-name">Vegetarisch</span>
+        <span class="folder-count">2</span>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#999;margin-top:6px;padding:0 4px">
+      Tap-Bereich: 48px · Schrift: 14px · Farbe: dunkel + grüner Akzent
+    </div>
+  </div>
+
+</div>
+
+<div style="background:white;border-radius:12px;padding:16px;margin-top:4px;border:0.5px solid rgba(0,0,0,0.1)">
+  <div style="font-size:13px;font-weight:600;margin-bottom:8px">Was sich ändert</div>
+  <div style="font-size:13px;color:#555;line-height:1.7">
+    • Tap-Höhe: 30px → <strong>48px</strong> (deutlich einfacher zu treffen)<br>
+    • Schrift: 12px uppercase grau → <strong>14px normaler Text, dunkel</strong><br>
+    • Chevron: 9px grau → <strong>11px grün mit Animation</strong><br>
+    • Hintergrund: weiß → <strong>leichter grüner Schimmer (#f2fbf7)</strong><br>
+    • Zähler-Badge: grau → <strong>grün passend zum App-Theme</strong>
+  </div>
+</div>
+
+</body>
+</html>

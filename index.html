@@ -353,7 +353,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v2.1.3';
+const APP_VERSION = 'v2.1.4';
 
 // ── Push Notifications Config ─────────────────────────────────────────────────
 // VAPID public key (generated; matching private key stored in Vercel env vars)
@@ -1206,7 +1206,7 @@ function getFolderValue(){
 function unitSelect(sel){ return`<select class="unit">${UNITS_LIST.map(u=>`<option value="${u}" ${u===sel?'selected':''}>${u||'–'}</option>`).join('')}</select>`; }
 function renderIngList(){
   const el=document.getElementById('ing-list');
-  el.innerHTML=formIngredients.map((ing,i)=>`<div class="ing-row"><input class="amt" type="text" inputmode="decimal" value="${ing.amt}" placeholder="Menge" oninput="formIngredients[${i}].amt=this.value"/>${unitSelect(ing.unit).replace('<select',`<select onchange="formIngredients[${i}].unit=this.value"`)}<input class="ingname" type="text" value="${ing.name}" placeholder="Bezeichnung" autocomplete="off" oninput="formIngredients[${i}].name=this.value" onkeydown="acKey(event,this)"/><button class="btn icon-btn" onclick="removeIngRow(${i})">×</button></div>`).join('');
+  el.innerHTML=formIngredients.map((ing,i)=>`<div class="ing-row"><input class="amt" type="text" inputmode="decimal" value="${ing.amt}" placeholder="Menge" oninput="formIngredients[${i}].amt=this.value"/>${unitSelect(ing.unit).replace('<select',`<select onchange="formIngredients[${i}].unit=this.value"`)}<input class="ingname" type="text" value="${ing.name}" placeholder="Bezeichnung" autocomplete="off" oninput="formIngredients[${i}].name=this.value;acSearch(this)" onfocus="acSearch(this)" onblur="acBlur()" onkeydown="acKey(event,this)"/><button class="btn icon-btn" onclick="removeIngRow(${i})">×</button></div>`).join('');
 }
 function addIngRow(){ formIngredients.push({amt:'',unit:'',name:''}); renderIngList(); setTimeout(()=>{ const rows=document.querySelectorAll('.ing-row'); if(rows.length)rows[rows.length-1].querySelector('.ingname').focus(); },50); }
 function removeIngRow(i){ formIngredients.splice(i,1); renderIngList(); }

@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Mockup v1.5 – Mahlzeiten-Planer</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; overflow-x: hidden; }
+
+.banner { background: #1D9E75; color: white; padding: 10px 16px; font-size: 12px; text-align: center; }
+.banner strong { display: block; font-size: 14px; margin-bottom: 2px; }
+.app-header { background: white; border-bottom: 0.5px solid rgba(0,0,0,0.12); padding: 14px 20px; }
+.app-header h1 { font-size: 20px; font-weight: 600; }
+.app-header p { font-size: 13px; color: #888; margin-top: 2px; }
+
+.tab-bar { display: flex; background: white; border-bottom: 0.5px solid rgba(0,0,0,0.12); }
+.tab { padding: 12px 20px; font-size: 14px; color: #888; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; background: none; border-top: none; border-left: none; border-right: none; font-family: inherit; }
+.tab.active { color: #1D9E75; border-bottom-color: #1D9E75; font-weight: 500; }
+
+.content { padding: 16px; max-width: 800px; margin: 0 auto; }
+.section-title { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+.card { background: white; border: 0.5px solid rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; margin-bottom: 14px; }
+.card.pad { padding: 16px; }
+
+.btn { padding: 9px 18px; border-radius: 9px; border: 0.5px solid rgba(0,0,0,0.2); background: white; color: #1a1a1a; font-size: 14px; cursor: pointer; font-family: inherit; transition: background 0.1s; }
+.btn:active { background: #f0f0f0; }
+.btn.primary { background: #1D9E75; border-color: #1D9E75; color: white; }
+.btn.primary:active { background: #0F6E56; }
+.btn.sm { padding: 5px 12px; font-size: 13px; }
+.btn-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+
+input, select { border: 0.5px solid rgba(0,0,0,0.2); border-radius: 9px; padding: 9px 12px; font-family: inherit; font-size: 14px; background: white; color: #1a1a1a; width: 100%; }
+input:focus, select:focus { outline: none; border-color: #1D9E75; }
+
+/* ── Day rows ── */
+.day-row {
+  display: flex; align-items: center;
+  padding: 10px 0 10px 6px;
+  border-bottom: 0.5px solid rgba(0,0,0,0.07);
+  gap: 0; min-height: 56px;
+  transition: background 0.12s, box-shadow 0.12s;
+  position: relative;
+  user-select: none; -webkit-user-select: none;
+}
+.day-row:last-child { border-bottom: none; }
+.day-row.is-today  { background: #F0FBF7; }
+.day-row.is-past   { background: #fafafa; }
+.day-row.drag-over-top    { box-shadow: inset 0  3px 0 #1D9E75; background: #f0faf6; }
+.day-row.drag-over-bottom { box-shadow: inset 0 -3px 0 #1D9E75; background: #f0faf6; }
+
+/* Drag handle */
+.drag-handle {
+  width: 32px; height: 44px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  cursor: grab; color: #ddd; touch-action: none;
+  transition: color 0.15s;
+}
+.drag-handle:active { cursor: grabbing; color: #aaa; }
+.drag-handle.dragging-source { cursor: grabbing; color: #1D9E75; }
+.drag-handle svg { width: 16px; height: 16px; }
+/* hide handle when no plan */
+.day-row.no-plan .drag-handle { visibility: hidden; }
+
+.day-date-col { flex-shrink: 0; width: 48px; }
+.day-label { font-size: 13px; font-weight: 600; color: #888; }
+.day-date  { font-size: 11px; color: #ccc; margin-top: 1px; }
+.is-today .day-label { color: #1D9E75; }
+.is-past  .day-label { color: #bbb; }
+.is-past  .day-date  { color: #ddd; }
+
+.day-content { flex: 1; min-width: 0; padding: 0 8px 0 10px; cursor: pointer; }
+.meal-line { display: flex; align-items: center; gap: 6px; }
+.meal-line + .meal-line { margin-top: 4px; }
+.meal-dot { width: 5px; height: 5px; border-radius: 50%; background: #1D9E75; flex-shrink: 0; }
+.meal-dot.second { background: #7dcab0; }
+.meal-name-text { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.is-past .meal-name-text { color: #aaa; }
+.day-special { font-size: 14px; color: #555; }
+.day-empty   { font-size: 14px; color: #ccc; }
+
+.day-action { flex-shrink: 0; padding-right: 14px; }
+.day-actions-col { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.btn-add { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid rgba(0,0,0,0.14); background: white; color: #bbb; font-size: 20px; display: flex; align-items: center; justify-content: center; }
+.btn-remove { width: 26px; height: 26px; border-radius: 50%; border: none; background: none; color: #ccc; font-size: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.btn-list-action { padding: 3px 7px; border-radius: 7px; border: 0.5px solid #1D9E75; background: white; color: #1D9E75; font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap; }
+.btn-list-action.in-list { border-color: rgba(0,0,0,0.14); color: #aaa; }
+.btn-eaten { padding: 4px 9px; border-radius: 7px; border: 0.5px solid rgba(0,0,0,0.14); background: white; color: #888; font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.btn-eaten:active { background: #E1F5EE; color: #1D9E75; border-color: #1D9E75; }
+
+/* ── Week section headers ── */
+.week-section-header { padding: 7px 16px 4px; font-size: 10px; font-weight: 600; color: #bbb; text-transform: uppercase; letter-spacing: 0.08em; background: #f9f9f9; border-bottom: 0.5px solid rgba(0,0,0,0.06); }
+
+/* ── Drag ghost ── */
+.drag-ghost {
+  position: fixed;
+  left: 8px; right: 8px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.1);
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.95;
+  transform: scale(1.02);
+  border: 1px solid rgba(29,158,117,0.3);
+}
+
+/* ── Sheet ── */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: flex-end; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+.overlay.open { opacity: 1; pointer-events: all; }
+.sheet { background: white; width: 100%; border-radius: 20px 20px 0 0; max-height: 82vh; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.25s cubic-bezier(.32,.72,0,1); }
+.overlay.open .sheet { transform: translateY(0); }
+.sheet-header { padding: 16px 16px 12px; border-bottom: 0.5px solid rgba(0,0,0,0.1); flex-shrink: 0; }
+.sheet-title { font-size: 15px; font-weight: 600; }
+.sheet-subtitle { font-size: 12px; color: #aaa; margin-top: 3px; }
+.sheet-body { overflow-y: auto; padding: 10px 16px 8px; flex: 1; }
+.sheet-footer { padding: 12px 16px; border-top: 0.5px solid rgba(0,0,0,0.1); flex-shrink: 0; display: flex; gap: 10px; }
+.btn-confirm { flex: 1; padding: 13px; border-radius: 12px; background: #1D9E75; color: white; border: none; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.btn-confirm:active { background: #0F6E56; }
+.btn-cancel { padding: 13px 18px; border-radius: 12px; background: #f0f0f0; color: #666; border: none; font-size: 15px; cursor: pointer; font-family: inherit; }
+
+/* Sheet folders */
+.sheet-folder-header { display: flex; align-items: center; gap: 8px; padding: 10px 0 8px; cursor: pointer; user-select: none; border-bottom: 0.5px solid rgba(0,0,0,0.08); font-size: 12px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.06em; -webkit-tap-highlight-color: transparent; }
+.sheet-folder-header:active { color: #1D9E75; }
+.sheet-folder-chevron { font-size: 9px; color: #bbb; transition: transform 0.15s; flex-shrink: 0; }
+.sheet-folder-header.open .sheet-folder-chevron { transform: rotate(90deg); }
+.sheet-folder-name { flex: 1; }
+.sheet-folder-count { font-size: 11px; color: #ccc; font-weight: 400; }
+.meal-pick-row { display: flex; align-items: center; padding: 11px 0; border-bottom: 0.5px solid rgba(0,0,0,0.07); cursor: pointer; gap: 10px; -webkit-tap-highlight-color: transparent; }
+.meal-pick-row:last-child { border-bottom: none; }
+.meal-pick-row:active { opacity: 0.6; }
+.pick-checkbox { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid rgba(0,0,0,0.18); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pick-checkbox.checked { background: #1D9E75; border-color: #1D9E75; }
+.pick-checkbox.checked::after { content:'✓'; color:white; font-size:12px; font-weight:700; }
+.pick-name { font-size: 14px; font-weight: 500; }
+.pick-folder { font-size: 11px; color: #bbb; }
+.clear-row { display: flex; align-items: center; gap: 8px; padding: 14px 0 2px; cursor: pointer; color: #aaa; font-size: 14px; }
+.special-btn { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px; border: 0.5px solid rgba(0,0,0,0.1); background: white; width: 100%; text-align: left; cursor: pointer; font-family: inherit; margin-bottom: 8px; }
+.special-icon { font-size: 20px; width: 28px; text-align: center; }
+.special-label { font-size: 14px; font-weight: 500; }
+.special-sub { font-size: 11px; color: #aaa; }
+.sheet-section-label { font-size: 11px; font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: 0.06em; padding: 12px 0 6px; }
+
+/* Shopping list */
+.sl-table { width: 100%; border-collapse: collapse; }
+.sl-table th { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.05em; padding: 0 8px 10px 0; text-align: left; border-bottom: 0.5px solid rgba(0,0,0,0.1); }
+.sl-table td { padding: 10px 8px 10px 0; border-bottom: 0.5px solid rgba(0,0,0,0.07); font-size: 14px; vertical-align: middle; }
+.sl-table tr:last-child td { border-bottom: none; }
+.sl-table tr.checked td { text-decoration: line-through; color: #bbb; }
+.check-circle { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+.checked .check-circle { background: #1D9E75; border-color: #1D9E75; }
+.check-circle svg { width: 10px; height: 10px; stroke: white; stroke-width: 2.5; fill: none; display: none; }
+.checked .check-circle svg { display: block; }
+.qty-cell { width: 90px; color: #888; font-size: 13px; }
+.add-item-form { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; padding-top: 14px; border-top: 0.5px solid rgba(0,0,0,0.07); }
+.add-item-form input.qty { width: 90px; flex: none; }
+.add-item-form input.name { flex: 1; min-width: 120px; }
+.empty-state { text-align: center; padding: 20px 16px 8px; color: #888; font-size: 14px; line-height: 1.6; }
+
+/* Decimal */
+.ing-demo { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.ing-demo input.amt { width: 80px; flex: none; }
+.ing-demo select.unit { width: 90px; padding: 9px 4px; flex: none; }
+.ing-demo input.ingname { flex: 1; }
+.col-header { display: grid; grid-template-columns: 80px 90px 1fr; gap: 8px; margin-bottom: 6px; }
+.col-header span { font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; }
+.parse-preview { font-size: 12px; color: #888; margin-top: 8px; padding: 8px 12px; background: #f9f9f9; border-radius: 8px; line-height: 1.8; }
+.parse-preview span { color: #1D9E75; font-weight: 600; }
+.decimal-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.decimal-row label { font-size: 13px; color: #666; width: 80px; flex-shrink: 0; }
+.decimal-tag { display: inline-block; font-size: 11px; background: #E1F5EE; color: #085041; border-radius: 6px; padding: 2px 7px; font-weight: 600; }
+.decimal-tag.warn { background: #fff3cd; color: #856404; }
+
+/* Change info */
+.change-box { border: 1.5px dashed #f0c040; border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; background: #fffdf0; font-size: 13px; color: #666; line-height: 1.7; }
+.change-box strong { color: #1a1a1a; }
+</style>
+</head>
+<body>
+
+<div class="banner">
+  <strong>📐 Mockup v1.5 – Vorschau der geplanten Änderungen</strong>
+  Gedrückt halten auf dem ≡ Handle um einen Tag zu verschieben
+</div>
+
+<div class="app-header">
+  <h1>Mahlzeiten-Planer</h1>
+  <p>Wochenplanung &amp; Einkaufsliste</p>
+</div>
+
+<div class="tab-bar">
+  <button class="tab active" id="t-planner" onclick="showTab('planner')">Wochenplaner</button>
+  <button class="tab" id="t-list"    onclick="showTab('list')">Einkaufsliste</button>
+  <button class="tab" id="t-decimal" onclick="showTab('decimal')">Dezimalzahlen</button>
+</div>
+
+<div class="content">
+
+<!-- ══════════════════════════ Tab 1 ══════════════════════════ -->
+<div id="tab-planner">
+  <div class="change-box">
+    <strong>Neu:</strong> ≡ Handle gedrückt halten → Zeile ziehen → loslassen zum Tauschen.<br>
+    Vergangene Tage mit Mahlzeiten bleiben sichtbar (mit <em>„Gegessen"</em>-Button). Sonderoptionen verschwinden.<br>
+    Tippe auf den Tagesinhalt um das Auswahlmenü zu öffnen.
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <p class="section-title" id="week-subtitle" style="margin:0">Nächste 7 Tage</p>
+  </div>
+
+  <div class="card" id="week-card"></div>
+</div>
+
+<!-- ══════════════════════════ Tab 2 ══════════════════════════ -->
+<div id="tab-list" style="display:none">
+  <div class="change-box">
+    <strong>Neu:</strong> Das Eingabefeld ist immer sichtbar, auch bei leerer Liste.
+  </div>
+  <div class="btn-row">
+    <button class="btn sm" onclick="toggleListView()">Demo: leer ↔ mit Einträgen</button>
+    <button class="btn sm" id="btn-hide-checked" onclick="toggleHide()">Abgehakte ausblenden</button>
+  </div>
+  <div id="list-view"></div>
+</div>
+
+<!-- ══════════════════════════ Tab 3 ══════════════════════════ -->
+<div id="tab-decimal" style="display:none">
+  <div class="change-box">
+    <strong>Neu:</strong> Punkt und Komma als Dezimaltrenner gleichwertig. Korrekte Aufaddierung in der Einkaufsliste.
+  </div>
+  <p class="section-title">Zutateneingabe – Livevorschau</p>
+  <div class="card pad">
+    <p style="font-size:13px;color:#888;margin-bottom:12px">Tippe beliebige Mengen – Punkt und Komma funktionieren beide:</p>
+    <div class="col-header"><span>Menge</span><span>Einheit</span><span>Bezeichnung</span></div>
+    <div class="ing-demo">
+      <input class="amt" id="ing1" value="1,5" oninput="updateDecimalPreview()"/>
+      <select class="unit" id="unit1" onchange="updateDecimalPreview()"><option>–</option><option selected>kg</option><option>g</option><option>ml</option><option>l</option></select>
+      <input class="ingname" value="Mehl" oninput="updateDecimalPreview()"/>
+    </div>
+    <div class="ing-demo">
+      <input class="amt" id="ing2" value="0.75" oninput="updateDecimalPreview()"/>
+      <select class="unit" id="unit2" onchange="updateDecimalPreview()"><option>–</option><option selected>kg</option><option>g</option><option>ml</option><option>l</option></select>
+      <input class="ingname" value="Mehl" oninput="updateDecimalPreview()"/>
+    </div>
+    <div class="parse-preview" id="decimal-preview"></div>
+  </div>
+  <p class="section-title">Aufaddierung in Einkaufsliste</p>
+  <div class="card pad">
+    <div class="decimal-row"><label>Rezept 1</label><input id="s1" value="1,5" oninput="updateSumDemo()" style="flex:1"/><select id="su1" onchange="updateSumDemo()" style="width:70px"><option selected>kg</option><option>g</option><option>l</option><option>ml</option></select></div>
+    <div class="decimal-row"><label>Rezept 2</label><input id="s2" value="0.75" oninput="updateSumDemo()" style="flex:1"/><select id="su2" onchange="updateSumDemo()" style="width:70px"><option selected>kg</option><option>g</option><option>l</option><option>ml</option></select></div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#f9f9f9;border-radius:9px;margin-top:8px">
+      <span style="font-size:13px;color:#888;width:80px;flex-shrink:0">Ergebnis:</span>
+      <span id="sum-result" style="font-size:15px;font-weight:600;color:#1D9E75"></span>
+      <span id="sum-tag"></span>
+    </div>
+  </div>
+</div>
+</div><!-- /content -->
+
+<!-- ══════════════════════════ Sheet ══════════════════════════ -->
+<div class="overlay" id="day-overlay" onclick="overlayClickHandler(event)">
+  <div class="sheet">
+    <div class="sheet-header">
+      <div class="sheet-title" id="sheet-title">Mahlzeit wählen</div>
+      <div class="sheet-subtitle" id="sheet-subtitle">Gericht oder Option wählen</div>
+    </div>
+    <div class="sheet-body" id="sheet-body"></div>
+    <div class="sheet-footer">
+      <button class="btn-cancel" onclick="closeSheet()">Abbrechen</button>
+      <button class="btn-confirm" onclick="closeSheet()">Übernehmen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const TODAY = (()=>{ const d=new Date(); d.setHours(0,0,0,0); return d; })();
+function addDays(d,n){ const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+function dateKey(d){ return d.toISOString().slice(0,10); }
+function dayLabel(d){
+  if(d.getTime()===TODAY.getTime()) return 'Heute';
+  if(d.getTime()===addDays(TODAY,1).getTime()) return 'Morgen';
+  if(d.getTime()===addDays(TODAY,-1).getTime()) return 'Gestern';
+  return ['So','Mo','Di','Mi','Do','Fr','Sa'][d.getDay()];
+}
+function dayDateStr(d){ return d.toLocaleDateString('de-DE',{day:'numeric',month:'short'}); }
+
+const SPECIAL=[
+  {key:'restaurant',icon:'🍽️',label:'Restaurant',sub:'Auswärts essen'},
+  {key:'delivery',icon:'🛵',label:'Lieferdienst',sub:'Pizza, Sushi, …'},
+  {key:'none',icon:'✓',label:'Kein Gericht benötigt',sub:'Reste, Fastentag, …'},
+];
+const MEALS_DEMO=[
+  {id:1,name:'Spaghetti Bolognese',folder:'Pasta'},
+  {id:2,name:'Pizza Margherita',folder:'Pasta'},
+  {id:3,name:'Hähnchen-Curry',folder:'Asiatisch'},
+  {id:4,name:'Pad Thai',folder:'Asiatisch'},
+  {id:5,name:'Linsensuppe',folder:'Suppen'},
+  {id:6,name:'Gemüsesuppe',folder:''},
+];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+// Past plans: only type='meal' plans are shown (special options are hidden)
+let plans = {
+  [dateKey(addDays(TODAY,-3))]: {type:'restaurant',meals:[],inList:false,past:true,done:false}, // won't show
+  [dateKey(addDays(TODAY,-2))]: {type:'meal',meals:['Hähnchen-Curry'],inList:false,past:true,done:false},
+  [dateKey(addDays(TODAY,-1))]: {type:'meal',meals:['Spaghetti Bolognese','Gemüsesuppe'],inList:true,past:true,done:false},
+  [dateKey(TODAY)]:             {type:'meal',meals:['Pizza Margherita'],inList:false,past:false,done:false},
+  [dateKey(addDays(TODAY,1))]:  {type:'meal',meals:['Hähnchen-Curry'],inList:false,past:false,done:false},
+  [dateKey(addDays(TODAY,3))]:  {type:'restaurant',meals:[],inList:false,past:false,done:false},
+};
+
+function getFutureDays(){ return Array.from({length:7},(_,i)=>addDays(TODAY,i)); }
+
+// Returns all draggable items in display order: [past-dks..., future-dks...]
+function getDisplayOrder(){
+  const pastDks=Object.keys(plans)
+    .filter(dk=>{ const p=plans[dk]; return p&&p.past&&!p.done&&p.type==='meal'; })
+    .sort();
+  const futureDks=getFutureDays().map(d=>dateKey(d));
+  return [...pastDks,...futureDks];
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderWeek(){
+  const card=document.getElementById('week-card');
+  const pastDks=Object.keys(plans)
+    .filter(dk=>{ const p=plans[dk]; return p&&p.past&&!p.done&&p.type==='meal'; })
+    .sort();
+  const futureDays=getFutureDays();
+
+  let html='';
+  if(pastDks.length){
+    html+=`<div class="week-section-header">Vergangene Tage</div>`;
+    pastDks.forEach(dk=>{ html+=renderDayRow(dk,new Date(dk+'T00:00:00'),true); });
+    html+=`<div class="week-section-header">Aktuelle Woche</div>`;
+  }
+  futureDays.forEach(date=>{ html+=renderDayRow(dateKey(date),date,false); });
+  card.innerHTML=html;
+
+  const mealCount=futureDays.reduce((s,d)=>{
+    const p=plans[dateKey(d)]; return s+(p&&p.type==='meal'?p.meals.length:0);
+  },0);
+  document.getElementById('week-subtitle').textContent=
+    mealCount>0?`${mealCount} Gericht${mealCount!==1?'e':''} geplant`:'Nächste 7 Tage';
+
+  attachDragHandlers();
+}
+
+function renderDayRow(dk, date, isPast){
+  const plan=plans[dk];
+  const isToday=date.getTime()===TODAY.getTime();
+  const hasPlan=plan&&!plan.done;
+  const cls=[isToday?'is-today':isPast?'is-past':'', hasPlan?'':'no-plan'].join(' ');
+
+  // Content
+  let contentHtml='';
+  if(!hasPlan){
+    contentHtml=`<div class="day-empty">Tippen zum Planen</div>`;
+  } else if(plan.type==='meal'){
+    contentHtml=plan.meals.map((m,mi)=>
+      `<div class="meal-line"><div class="meal-dot${mi>0?' second':''}"></div><div class="meal-name-text">${m}</div></div>`
+    ).join('') || `<div class="day-empty">Tippen zum Bearbeiten</div>`;
+  } else {
+    const sp=SPECIAL.find(s=>s.key===plan.type);
+    contentHtml=`<div class="day-special">${sp.icon}&ensp;${sp.label}</div>`;
+  }
+
+  // Action
+  let actionHtml='';
+  if(hasPlan){
+    if(isPast){
+      actionHtml=`<button class="btn-eaten" onclick="event.stopPropagation();markEaten('${dk}')">Gegessen ✓</button>`;
+    } else if(plan.type==='meal'&&plan.meals.length>0){
+      const listBtn=plan.inList
+        ?`<button class="btn-list-action in-list" onclick="event.stopPropagation()">− Liste</button>`
+        :`<button class="btn-list-action" onclick="event.stopPropagation()">+ Liste</button>`;
+      actionHtml=`<div class="day-actions-col">${listBtn}<button class="btn-remove" onclick="event.stopPropagation();clearPlan('${dk}')">×</button></div>`;
+    } else {
+      actionHtml=`<button class="btn-remove" onclick="event.stopPropagation();clearPlan('${dk}')">×</button>`;
+    }
+  } else {
+    actionHtml=`<div class="btn-add">+</div>`;
+  }
+
+  // Drag handle (≡)
+  const handleHtml=`<div class="drag-handle" data-handle-dk="${dk}">
+    <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="1.5" rx="0.75" fill="currentColor"/>
+    <rect x="2" y="7.25" width="12" height="1.5" rx="0.75" fill="currentColor"/>
+    <rect x="2" y="11.5" width="12" height="1.5" rx="0.75" fill="currentColor"/></svg>
+  </div>`;
+
+  return `<div class="day-row ${cls}" data-dk="${dk}" data-past="${isPast}">
+    ${handleHtml}
+    <div class="day-date-col">
+      <div class="day-label">${dayLabel(date)}</div>
+      <div class="day-date">${dayDateStr(date)}</div>
+    </div>
+    <div class="day-content" onclick="openSheet('${dk}')">${contentHtml}</div>
+    <div class="day-action">${actionHtml}</div>
+  </div>`;
+}
+
+function markEaten(dk){ if(plans[dk]) plans[dk].done=true; renderWeek(); }
+function clearPlan(dk){ delete plans[dk]; renderWeek(); }
+
+// ── Drag & Drop ───────────────────────────────────────────────────────────────
+let dragSrcDk=null, dragOverDk=null, isDragging=false;
+let ghostEl=null, longPressTimer=null;
+let touchStartX=0, touchStartY=0, lastTouchY=0;
+let longPressFired=false;
+
+function attachDragHandlers(){
+  // HTML5 drag (desktop)
+  document.querySelectorAll('.day-row').forEach(row=>{
+    const dk=row.dataset.dk;
+    row.addEventListener('dragstart', e=>{ dragSrcDk=dk; e.dataTransfer.effectAllowed='move'; row.style.opacity='0.4'; });
+    row.addEventListener('dragend',   e=>{ row.style.opacity=''; clearDragHighlights(); });
+    row.addEventListener('dragover',  e=>{ e.preventDefault(); highlightDragOver(dk,row); });
+    row.addEventListener('dragleave', e=>{ row.classList.remove('drag-over-top','drag-over-bottom'); });
+    row.addEventListener('drop',      e=>{ e.preventDefault(); doSwap(dk); });
+  });
+  // Touch drag (mobile) – attach to handles
+  document.querySelectorAll('.drag-handle').forEach(handle=>{
+    const dk=handle.dataset.handleDk;
+    handle.addEventListener('touchstart', e=>onTouchStart(e,dk), {passive:false});
+    handle.addEventListener('touchmove',  e=>onTouchMove(e),     {passive:false});
+    handle.addEventListener('touchend',   e=>onTouchEnd(e),      {passive:false});
+    handle.addEventListener('touchcancel',e=>cancelDrag(),        {passive:false});
+    // Also draggable for desktop
+    handle.closest('.day-row').draggable=true;
+  });
+}
+
+function onTouchStart(e,dk){
+  const t=e.touches[0];
+  touchStartX=t.clientX; touchStartY=t.clientY; lastTouchY=t.clientY;
+  dragSrcDk=dk; longPressFired=false;
+  longPressTimer=setTimeout(()=>{
+    longPressFired=true;
+    startTouchDrag(dk, t.clientY);
+    if(navigator.vibrate) navigator.vibrate(40);
+  },300);
+}
+
+function onTouchMove(e){
+  if(!longPressFired){
+    const t=e.touches[0];
+    if(Math.abs(t.clientY-touchStartY)>8||Math.abs(t.clientX-touchStartX)>8){
+      clearTimeout(longPressTimer);
+    }
+    return;
+  }
+  e.preventDefault();
+  const t=e.touches[0];
+  lastTouchY=t.clientY;
+  if(ghostEl){
+    const gh=ghostEl;
+    const top=t.clientY-gh._offsetY;
+    gh.style.top=Math.max(0,top)+'px';
+  }
+  // Find target row
+  if(ghostEl) ghostEl.style.display='none';
+  const el=document.elementFromPoint(t.clientX, t.clientY);
+  if(ghostEl) ghostEl.style.display='';
+  const targetRow=el&&el.closest('.day-row');
+  clearDragHighlights();
+  if(targetRow){
+    dragOverDk=targetRow.dataset.dk;
+    if(dragOverDk!==dragSrcDk) targetRow.classList.add('drag-over-top');
+  } else { dragOverDk=null; }
+}
+
+function onTouchEnd(e){
+  clearTimeout(longPressTimer);
+  if(longPressFired&&dragSrcDk&&dragOverDk&&dragSrcDk!==dragOverDk){
+    doSwap(dragOverDk);
+  } else {
+    endDrag();
+  }
+}
+
+function cancelDrag(){
+  clearTimeout(longPressTimer);
+  endDrag();
+}
+
+function startTouchDrag(dk, clientY){
+  isDragging=true;
+  const srcRow=document.querySelector(`.day-row[data-dk="${dk}"]`);
+  if(!srcRow)return;
+  const rect=srcRow.getBoundingClientRect();
+  ghostEl=srcRow.cloneNode(true);
+  ghostEl._offsetY=clientY-rect.top;
+  ghostEl.className='drag-ghost';
+  ghostEl.style.top=(clientY-ghostEl._offsetY)+'px';
+  ghostEl.style.height=rect.height+'px';
+  document.body.appendChild(ghostEl);
+  srcRow.style.opacity='0.35';
+}
+
+function clearDragHighlights(){
+  document.querySelectorAll('.day-row').forEach(r=>r.classList.remove('drag-over-top','drag-over-bottom'));
+}
+function highlightDragOver(dk, row){
+  clearDragHighlights();
+  dragOverDk=dk;
+  if(dk!==dragSrcDk) row.classList.add('drag-over-top');
+}
+
+function endDrag(){
+  isDragging=false; longPressFired=false;
+  if(ghostEl){ ghostEl.remove(); ghostEl=null; }
+  clearDragHighlights();
+  const srcRow=document.querySelector(`.day-row[data-dk="${dragSrcDk}"]`);
+  if(srcRow) srcRow.style.opacity='';
+  dragSrcDk=null; dragOverDk=null;
+}
+
+function doSwap(targetDk){
+  if(!dragSrcDk||targetDk===dragSrcDk){ endDrag(); return; }
+  const srcPlan = plans[dragSrcDk] ? {...plans[dragSrcDk]} : null;
+  const tgtPlan = plans[targetDk]  ? {...plans[targetDk]}  : null;
+  // Update past flag based on target date
+  const srcDate=new Date(dragSrcDk+'T00:00:00');
+  const tgtDate=new Date(targetDk+'T00:00:00');
+  if(srcPlan){ srcPlan.past=tgtDate<TODAY; srcPlan.inList=false; }
+  if(tgtPlan){ tgtPlan.past=srcDate<TODAY; tgtPlan.inList=false; }
+  if(srcPlan) plans[targetDk]=srcPlan; else delete plans[targetDk];
+  if(tgtPlan) plans[dragSrcDk]=tgtPlan; else delete plans[dragSrcDk];
+  endDrag();
+  renderWeek();
+}
+
+// ── Sheet ─────────────────────────────────────────────────────────────────────
+let sheetCollapsed={};
+function openSheet(dk){
+  const date=new Date(dk+'T00:00:00');
+  document.getElementById('sheet-title').textContent=dayLabel(date)+', '+dayDateStr(date);
+  sheetCollapsed={};
+  renderSheetBody();
+  document.getElementById('day-overlay').classList.add('open');
+}
+function closeSheet(){ document.getElementById('day-overlay').classList.remove('open'); }
+function overlayClickHandler(e){ if(e.target===document.getElementById('day-overlay'))closeSheet(); }
+
+function toggleSheetFolder(key){
+  sheetCollapsed[key]=(sheetCollapsed[key]===false)?true:false;
+  renderSheetBody();
+}
+
+function renderSheetBody(){
+  const grouped={}, NO='__none__';
+  MEALS_DEMO.forEach(m=>{ const k=(m.folder||'').trim()||NO; if(!grouped[k])grouped[k]=[]; grouped[k].push(m); });
+  const keys=Object.keys(grouped).sort((a,b)=>{if(a===NO)return 1;if(b===NO)return -1;return a.localeCompare(b,'de');});
+
+  let mealsHtml='';
+  keys.forEach(key=>{
+    const isOpen=(sheetCollapsed[key]===false); // default: collapsed
+    const fm=grouped[key];
+    if(key===NO){
+      mealsHtml+=fm.map(m=>`<div class="meal-pick-row"><div class="pick-checkbox"></div><div><div class="pick-name">${m.name}</div></div></div>`).join('');
+    } else {
+      mealsHtml+=`<div class="sheet-folder-header${isOpen?' open':''}" onclick="toggleSheetFolder('${key}')">
+        <span class="sheet-folder-chevron">▶</span>
+        <span class="sheet-folder-name">${key}</span>
+        <span class="sheet-folder-count">${fm.length} Rezepte</span>
+      </div>`;
+      if(isOpen){
+        mealsHtml+=fm.map(m=>`<div class="meal-pick-row"><div class="pick-checkbox"></div><div><div class="pick-name">${m.name}</div><div class="pick-folder">${m.folder}</div></div></div>`).join('');
+      }
+    }
+  });
+
+  const specialHtml=SPECIAL.map(sp=>`<button class="special-btn">
+    <span class="special-icon">${sp.icon}</span>
+    <div><div class="special-label">${sp.label}</div><div class="special-sub">${sp.sub}</div></div>
+  </button>`).join('');
+
+  document.getElementById('sheet-body').innerHTML=`
+    <div class="sheet-section-label">Sonderoptionen</div>${specialHtml}
+    <div class="sheet-section-label">Rezepte</div>${mealsHtml}
+    <div class="clear-row"><span>↩</span><span>Eintrag entfernen</span></div>`;
+}
+
+// ── Shopping list ─────────────────────────────────────────────────────────────
+let listFilled=false, hideChecked=false;
+let demoItems=[{qty:'500 g',name:'Hackfleisch',checked:false},{qty:'2',name:'Zwiebeln',checked:true},{qty:'1,5 kg',name:'Mehl',checked:false}];
+
+function toggleListView(){ listFilled=!listFilled; renderListView(); }
+function toggleHide(){
+  hideChecked=!hideChecked;
+  document.getElementById('btn-hide-checked').textContent=hideChecked?'Abgehakte anzeigen':'Abgehakte ausblenden';
+  renderListView();
+}
+function renderListView(){
+  const el=document.getElementById('list-view');
+  const items=hideChecked?demoItems.filter(i=>!i.checked):demoItems;
+  const addForm=`<div class="add-item-form">
+    <input class="qty" id="new-qty" placeholder="Menge"/>
+    <input class="name" id="new-name" placeholder="Bezeichnung" onkeydown="if(event.key==='Enter')addListItem()"/>
+    <button class="btn primary" onclick="addListItem()">+</button>
+  </div>`;
+  if(!listFilled||!demoItems.length){
+    el.innerHTML=`<div class="card pad"><div class="empty-state">Noch keine Einträge.<br>Gerichte planen und „+ Liste" tippen.</div>${addForm}</div>`;
+    return;
+  }
+  const rows=items.map(item=>`<tr class="${item.checked?'checked':''}">
+    <td style="width:30px"><div class="check-circle" onclick="toggleCheck(${demoItems.indexOf(item)})"><svg viewBox="0 0 12 9"><polyline points="1,4 4.5,8 11,1"/></svg></div></td>
+    <td class="qty-cell">${item.qty||'–'}</td><td>${item.name}</td><td></td></tr>`).join('');
+  el.innerHTML=`<div class="card pad"><table class="sl-table"><thead><tr><th></th><th>Menge</th><th>Bezeichnung</th><th></th></tr></thead><tbody>${rows}</tbody></table>${addForm}</div>`;
+}
+function toggleCheck(i){ demoItems[i].checked=!demoItems[i].checked; renderListView(); }
+function addListItem(){
+  const n=document.getElementById('new-name').value.trim(), q=document.getElementById('new-qty').value.trim();
+  if(!n)return;
+  demoItems.push({qty:q,name:n,checked:false}); listFilled=true;
+  document.getElementById('new-name').value=''; document.getElementById('new-qty').value='';
+  renderListView();
+}
+
+// ── Decimal ───────────────────────────────────────────────────────────────────
+function parseAmt(s){ return parseFloat(s.replace(',','.').trim())||0; }
+function fmtNum(n){ return n%1===0?String(n):parseFloat(n.toFixed(3)).toString(); }
+function updateDecimalPreview(){
+  const a1=parseAmt(document.getElementById('ing1').value), u1=document.getElementById('unit1').value;
+  const a2=parseAmt(document.getElementById('ing2').value), u2=document.getElementById('unit2').value;
+  let html=`Zutat 1: <span>${fmtNum(a1)} ${u1}</span> &nbsp; Zutat 2: <span>${fmtNum(a2)} ${u2}</span>`;
+  if(a1>0&&a2>0&&u1===u2) html+=`<br>→ In Einkaufsliste: <span>${fmtNum(a1+a2)} ${u1}</span>`;
+  else if(u1!==u2) html+=`<br>→ Verschiedene Einheiten → werden separat aufgeführt`;
+  document.getElementById('decimal-preview').innerHTML=html;
+}
+function updateSumDemo(){
+  const a1=parseAmt(document.getElementById('s1').value), u1=document.getElementById('su1').value;
+  const a2=parseAmt(document.getElementById('s2').value), u2=document.getElementById('su2').value;
+  if(u1===u2&&a1>0&&a2>0){
+    document.getElementById('sum-result').textContent=fmtNum(a1+a2)+' '+u1;
+    document.getElementById('sum-tag').innerHTML='<span class="decimal-tag">✓ summiert</span>';
+  } else if(u1!==u2){
+    document.getElementById('sum-result').textContent=fmtNum(a1)+' '+u1+', '+fmtNum(a2)+' '+u2;
+    document.getElementById('sum-tag').innerHTML='<span class="decimal-tag warn">⚠ versch. Einheiten</span>';
+  }
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function showTab(t){
+  ['planner','list','decimal'].forEach(x=>{
+    document.getElementById('tab-'+x).style.display=x===t?'block':'none';
+    document.getElementById('t-'+x).classList.toggle('active',x===t);
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+renderWeek();
+renderListView();
+updateDecimalPreview();
+updateSumDemo();
+</script>
+</body>
+</html>

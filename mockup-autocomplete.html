@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Autocomplete Demo</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; padding: 24px 16px; }
+h1 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+.subtitle { font-size: 13px; color: #888; margin-bottom: 28px; }
+.section { background: white; border-radius: 14px; padding: 20px; margin-bottom: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+.section-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.section-desc { font-size: 12px; color: #888; margin-bottom: 16px; line-height: 1.4; }
+label { font-size: 13px; color: #555; display: block; margin-bottom: 6px; }
+input { border: 0.5px solid rgba(0,0,0,0.2); border-radius: 9px; padding: 9px 12px; font-family: inherit; font-size: 14px; background: white; color: #1a1a1a; width: 100%; }
+input:focus { outline: none; border-color: #1D9E75; }
+.badge { display: inline-block; font-size: 11px; background: #e8f7f2; color: #1D9E75; border-radius: 20px; padding: 2px 8px; margin-bottom: 12px; font-weight: 500; }
+.badge.neutral { background: #f0f0f0; color: #666; }
+
+/* ── Option A: datalist ── */
+datalist {}
+
+/* ── Option B: Custom Dropdown ── */
+.ac-wrap { position: relative; }
+.ac-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.13);
+  z-index: 10;
+  overflow: hidden;
+  border: 0.5px solid rgba(0,0,0,0.08);
+}
+.ac-dropdown.open { display: block; }
+.ac-item {
+  padding: 10px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 0.5px solid rgba(0,0,0,0.06);
+}
+.ac-item:last-child { border-bottom: none; }
+.ac-item:hover, .ac-item.selected { background: #f0faf6; }
+.ac-item .match { color: #1D9E75; font-weight: 600; }
+.ac-item .cat { font-size: 11px; color: #aaa; margin-left: 8px; flex-shrink: 0; }
+.ac-empty { padding: 10px 14px; font-size: 13px; color: #aaa; }
+
+/* ── Vergleichstabelle ── */
+.table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+.table th { text-align: left; padding: 6px 8px; color: #888; font-weight: 500; border-bottom: 1px solid #eee; }
+.table td { padding: 7px 8px; border-bottom: 0.5px solid #f0f0f0; vertical-align: top; }
+.table tr:last-child td { border-bottom: none; }
+.yes { color: #1D9E75; }
+.no { color: #e74c3c; }
+.mid { color: #f39c12; }
+</style>
+</head>
+<body>
+
+<h1>Autocomplete — Demo</h1>
+<p class="subtitle">Tippe z.B. "tom", "milch", "häh" oder "kar"</p>
+
+<!-- ═══ Option A ═══ -->
+<div class="section">
+  <div class="section-title">Option A — Native &lt;datalist&gt;</div>
+  <p class="section-desc">Browser-eigene Lösung. Kein extra JS, UI kommt vom Betriebssystem.</p>
+  <span class="badge neutral">Minimal-Aufwand</span>
+
+  <label>Artikel hinzufügen</label>
+  <input type="text" list="suggestions-a" placeholder="Bezeichnung" autocomplete="off" />
+  <datalist id="suggestions-a">
+    <option value="Tomaten">
+    <option value="Tomatenmark">
+    <option value="Tomatenpaste">
+    <option value="Tomatensoße">
+    <option value="Kirschtomaten">
+    <option value="Milch">
+    <option value="Butter">
+    <option value="Mozzarella">
+    <option value="Milchreis">
+    <option value="Hähnchenbrust">
+    <option value="Hähnchen">
+    <option value="Hähnchenbrustfilet">
+    <option value="Karotte">
+    <option value="Kartoffel">
+    <option value="Knoblauch">
+    <option value="Zwiebel">
+    <option value="Parmesan">
+    <option value="Pasta">
+    <option value="Sahne">
+    <option value="Spaghetti">
+    <option value="Spinat">
+    <option value="Zucchini">
+    <option value="Paprika">
+    <option value="Joghurt">
+    <option value="Lachs">
+  </datalist>
+</div>
+
+<!-- ═══ Option B ═══ -->
+<div class="section">
+  <div class="section-title">Option B — Eigenes Dropdown</div>
+  <p class="section-desc">Komplett im App-Design. Zeigt Kategorie, hebt Tipp-Teil hervor, schließt sich nach Auswahl.</p>
+  <span class="badge">Empfohlen</span>
+
+  <label>Artikel hinzufügen</label>
+  <div class="ac-wrap">
+    <input type="text" id="ac-input" placeholder="Bezeichnung" autocomplete="off"
+      oninput="acSearch(this.value)"
+      onkeydown="acKey(event)"
+      onfocus="acSearch(this.value)"
+      onblur="setTimeout(()=>acClose(),150)"
+    />
+    <div class="ac-dropdown" id="ac-dropdown"></div>
+  </div>
+</div>
+
+<!-- ═══ Vergleich ═══ -->
+<div class="section">
+  <div class="section-title">Vergleich</div>
+  <table class="table">
+    <tr>
+      <th></th>
+      <th>Option A</th>
+      <th>Option B</th>
+    </tr>
+    <tr>
+      <td>Aufwand</td>
+      <td class="yes">minimal</td>
+      <td class="mid">~100 Zeilen JS</td>
+    </tr>
+    <tr>
+      <td>iOS PWA Look</td>
+      <td class="mid">System-UI (grau)</td>
+      <td class="yes">App-Design</td>
+    </tr>
+    <tr>
+      <td>Kategorie anzeigen</td>
+      <td class="no">nein</td>
+      <td class="yes">ja</td>
+    </tr>
+    <tr>
+      <td>Tipp-Teil highlighten</td>
+      <td class="no">nein</td>
+      <td class="yes">ja</td>
+    </tr>
+    <tr>
+      <td>Keyboard-Navigation</td>
+      <td class="yes">nativ</td>
+      <td class="yes">↑ ↓ Enter</td>
+    </tr>
+    <tr>
+      <td>Styling-Kontrolle</td>
+      <td class="no">keine</td>
+      <td class="yes">voll</td>
+    </tr>
+  </table>
+</div>
+
+<script>
+const ITEMS = [
+  { name:"Tomaten",            cat:"Obst & Gemüse" },
+  { name:"Tomatenmark",        cat:"Konserven & Gläser" },
+  { name:"Tomatenpaste",       cat:"Konserven & Gläser" },
+  { name:"Tomatensoße",        cat:"Konserven & Gläser" },
+  { name:"Kirschtomaten",      cat:"Obst & Gemüse" },
+  { name:"Milch",              cat:"Milchwaren" },
+  { name:"Milchreis",          cat:"Trockenwaren & Nudeln" },
+  { name:"Butter",             cat:"Milchwaren" },
+  { name:"Mozzarella",         cat:"Milchwaren" },
+  { name:"Parmesan",           cat:"Milchwaren" },
+  { name:"Sahne",              cat:"Milchwaren" },
+  { name:"Joghurt",            cat:"Milchwaren" },
+  { name:"Hähnchen",           cat:"Fleisch & Fisch" },
+  { name:"Hähnchenbrust",      cat:"Fleisch & Fisch" },
+  { name:"Hähnchenbrustfilet", cat:"Fleisch & Fisch" },
+  { name:"Hackfleisch",        cat:"Fleisch & Fisch" },
+  { name:"Lachs",              cat:"Fleisch & Fisch" },
+  { name:"Karotte",            cat:"Obst & Gemüse" },
+  { name:"Kartoffel",          cat:"Obst & Gemüse" },
+  { name:"Knoblauch",          cat:"Obst & Gemüse" },
+  { name:"Zwiebel",            cat:"Obst & Gemüse" },
+  { name:"Zucchini",           cat:"Obst & Gemüse" },
+  { name:"Paprika",            cat:"Obst & Gemüse" },
+  { name:"Spinat",             cat:"Obst & Gemüse" },
+  { name:"Spaghetti",          cat:"Trockenwaren & Nudeln" },
+  { name:"Pasta",              cat:"Trockenwaren & Nudeln" },
+  { name:"Reis",               cat:"Trockenwaren & Nudeln" },
+  { name:"Olivenöl",           cat:"Öle & Würzmittel" },
+  { name:"Knoblauchzehen",     cat:"Obst & Gemüse" },
+];
+
+let acSelected = -1;
+
+function acSearch(q) {
+  const dd = document.getElementById('ac-dropdown');
+  q = q.trim().toLowerCase();
+  if (!q) { acClose(); return; }
+
+  const matches = ITEMS.filter(i => i.name.toLowerCase().startsWith(q))
+    .concat(ITEMS.filter(i => !i.name.toLowerCase().startsWith(q) && i.name.toLowerCase().includes(q)))
+    .slice(0, 6);
+
+  if (!matches.length) {
+    dd.innerHTML = '<div class="ac-empty">Keine Vorschläge</div>';
+    dd.classList.add('open');
+    return;
+  }
+
+  dd.innerHTML = matches.map((item, idx) => {
+    const lo = item.name.toLowerCase();
+    const qi = lo.indexOf(q);
+    const highlighted = item.name.slice(0, qi)
+      + '<span class="match">' + item.name.slice(qi, qi + q.length) + '</span>'
+      + item.name.slice(qi + q.length);
+    return `<div class="ac-item" data-idx="${idx}" data-name="${item.name}"
+      onmousedown="acSelect('${item.name}')">
+      <span>${highlighted}</span>
+      <span class="cat">${item.cat}</span>
+    </div>`;
+  }).join('');
+
+  acSelected = -1;
+  dd.classList.add('open');
+}
+
+function acSelect(name) {
+  document.getElementById('ac-input').value = name;
+  acClose();
+}
+
+function acClose() {
+  document.getElementById('ac-dropdown').classList.remove('open');
+  acSelected = -1;
+}
+
+function acKey(e) {
+  const dd = document.getElementById('ac-dropdown');
+  const items = dd.querySelectorAll('.ac-item');
+  if (!items.length) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    acSelected = Math.min(acSelected + 1, items.length - 1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    acSelected = Math.max(acSelected - 1, 0);
+  } else if (e.key === 'Enter' && acSelected >= 0) {
+    e.preventDefault();
+    acSelect(items[acSelected].dataset.name);
+    return;
+  } else if (e.key === 'Escape') {
+    acClose(); return;
+  } else { return; }
+
+  items.forEach((el, i) => el.classList.toggle('selected', i === acSelected));
+}
+</script>
+</body>
+</html>
