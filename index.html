@@ -282,7 +282,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
       <div class="recipe-form-card" style="margin-top:8px">
         <label class="form-label">Neuen Artikel hinzufügen</label>
         <div class="ing-row">
-          <input id="quick-new-name" class="ingname" placeholder="Bezeichnung" autocomplete="off" oninput="acSearch(this)" onfocus="acSearch(this)" onblur="acBlur()" onkeydown="acKey(event,this);if(!event.defaultPrevented&&event.key==='Enter')addQuickItem()"/>
+          <input id="quick-new-name" class="ingname" placeholder="Bezeichnung" autocomplete="off" onkeydown="acKey(event,this);if(!event.defaultPrevented&&event.key==='Enter')addQuickItem()"/>
           <button class="btn sm primary" onclick="addQuickItem()">+</button>
         </div>
       </div>
@@ -353,7 +353,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v2.1.1';
+const APP_VERSION = 'v2.1.2';
 
 // ── Push Notifications Config ─────────────────────────────────────────────────
 // VAPID public key (generated; matching private key stored in Vercel env vars)
@@ -1093,7 +1093,7 @@ function renderShoppingList(){
       <option value="Bund">Bund</option>
       <option value="Dose">Dose</option>
     </select>
-    <input class="name" id="new-name" placeholder="Bezeichnung" autocomplete="off" oninput="acSearch(this)" onfocus="acSearch(this)" onblur="acBlur()" onkeydown="acKey(event,this);if(!event.defaultPrevented&&event.key==='Enter')addItem()"/>
+    <input class="name" id="new-name" placeholder="Bezeichnung" autocomplete="off" onkeydown="acKey(event,this);if(!event.defaultPrevented&&event.key==='Enter')addItem()"/>
     <button class="btn primary" onclick="addItem()">+</button>
   </div>`;
 
@@ -1206,7 +1206,7 @@ function getFolderValue(){
 function unitSelect(sel){ return`<select class="unit">${UNITS_LIST.map(u=>`<option value="${u}" ${u===sel?'selected':''}>${u||'–'}</option>`).join('')}</select>`; }
 function renderIngList(){
   const el=document.getElementById('ing-list');
-  el.innerHTML=formIngredients.map((ing,i)=>`<div class="ing-row"><input class="amt" type="text" inputmode="decimal" value="${ing.amt}" placeholder="Menge" oninput="formIngredients[${i}].amt=this.value"/>${unitSelect(ing.unit).replace('<select',`<select onchange="formIngredients[${i}].unit=this.value"`)}<input class="ingname" type="text" value="${ing.name}" placeholder="Bezeichnung" autocomplete="off" oninput="formIngredients[${i}].name=this.value;acSearch(this)" onfocus="acSearch(this)" onblur="acBlur()" onkeydown="acKey(event,this)"/><button class="btn icon-btn" onclick="removeIngRow(${i})">×</button></div>`).join('');
+  el.innerHTML=formIngredients.map((ing,i)=>`<div class="ing-row"><input class="amt" type="text" inputmode="decimal" value="${ing.amt}" placeholder="Menge" oninput="formIngredients[${i}].amt=this.value"/>${unitSelect(ing.unit).replace('<select',`<select onchange="formIngredients[${i}].unit=this.value"`)}<input class="ingname" type="text" value="${ing.name}" placeholder="Bezeichnung" autocomplete="off" oninput="formIngredients[${i}].name=this.value" onkeydown="acKey(event,this)"/><button class="btn icon-btn" onclick="removeIngRow(${i})">×</button></div>`).join('');
 }
 function addIngRow(){ formIngredients.push({amt:'',unit:'',name:''}); renderIngList(); setTimeout(()=>{ const rows=document.querySelectorAll('.ing-row'); if(rows.length)rows[rows.length-1].querySelector('.ingname').focus(); },50); }
 function removeIngRow(i){ formIngredients.splice(i,1); renderIngList(); }
@@ -1529,6 +1529,18 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('pagehide', () => {
   if (_mealsChanged || _shoppingChanged) sendPushToOthers();
+});
+
+// ── Autocomplete Event Delegation ────────────────────────────────────────────
+const AC_SELECTOR = '#new-name, #quick-new-name, .ingname';
+document.addEventListener('input', e => {
+  if (e.target.matches(AC_SELECTOR)) acSearch(e.target);
+});
+document.addEventListener('focusin', e => {
+  if (e.target.matches(AC_SELECTOR)) acSearch(e.target);
+});
+document.addEventListener('focusout', e => {
+  if (e.target.matches(AC_SELECTOR)) acBlur();
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────────
