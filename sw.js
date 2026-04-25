@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mahlzeiten-planer-v33';
+const CACHE_NAME = 'mahlzeiten-planer-v34';
 const ASSETS = [
   './',
   './index.html',

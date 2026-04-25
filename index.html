@@ -353,7 +353,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v2.1.6';
+const APP_VERSION = 'v2.1.7';
 
 // ── Push Notifications Config ─────────────────────────────────────────────────
 // VAPID public key (generated; matching private key stored in Vercel env vars)
@@ -1431,18 +1431,15 @@ function acSearch(input) {
     return `<div class="ac-item${isRecipe?' ac-recipe':''}" data-name="${item.name.replace(/"/g,'&quot;')}" onmousedown="acMouseDown(event)" ontouchstart="acTouchStart(event)"><span class="ac-name">${hl}</span>${badge}</div>`;
   }).join('');
   _acIdx = -1;
-  // Dropdown direkt nach dem Input einhängen, position:absolute relativ zum Wrapper
-  if (input.parentNode && dd.parentNode !== input.parentNode) {
-    input.parentNode.insertBefore(dd, input.nextSibling);
-  }
-  const parent = dd.parentNode;
-  if (parent && getComputedStyle(parent).position === 'static') {
-    parent.style.position = 'relative';
-  }
+  // Dropdown immer an body, position:absolute mit Scroll-Offset
+  if (dd.parentNode !== document.body) document.body.appendChild(dd);
+  const rect = input.getBoundingClientRect();
+  const sy = window.pageYOffset || document.documentElement.scrollTop;
+  const sx = window.pageXOffset || document.documentElement.scrollLeft;
   dd.style.display = 'block';
-  dd.style.left = input.offsetLeft + 'px';
-  dd.style.width = input.offsetWidth + 'px';
-  dd.style.top = (input.offsetTop + input.offsetHeight + 4) + 'px';
+  dd.style.left = (rect.left + sx) + 'px';
+  dd.style.width = rect.width + 'px';
+  dd.style.top = (rect.bottom + sy + 4) + 'px';
 }
 
 function acMouseDown(e) {
