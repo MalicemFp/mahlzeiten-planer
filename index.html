@@ -198,11 +198,15 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 /* ── Autocomplete ─────────────────────────────────── */
 .ac-dropdown { position: fixed; background: white; border-radius: 10px; box-shadow: 0 4px 18px rgba(0,0,0,0.14); z-index: 9999; overflow: hidden; border: 0.5px solid rgba(0,0,0,0.08); }
-.ac-item { padding: 10px 14px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; border-bottom: 0.5px solid rgba(0,0,0,0.06); -webkit-tap-highlight-color: transparent; }
+.ac-item { padding: 10px 14px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 0.5px solid rgba(0,0,0,0.06); -webkit-tap-highlight-color: transparent; }
 .ac-item:last-child { border-bottom: none; }
 .ac-item.ac-sel { background: #f0faf6; }
+.ac-item.ac-recipe { background: #f8fefb; }
+.ac-item.ac-recipe.ac-sel { background: #edf9f3; }
+.ac-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ac-match { color: #1D9E75; font-weight: 600; }
-.ac-cat { font-size: 11px; color: #aaa; margin-left: 8px; flex-shrink: 0; }
+.ac-cat { font-size: 11px; color: #bbb; flex-shrink: 0; }
+.ac-recipe-badge { font-size: 11px; color: #1D9E75; flex-shrink: 0; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -349,7 +353,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v2.1.0';
+const APP_VERSION = 'v2.1.1';
 
 // ── Push Notifications Config ─────────────────────────────────────────────────
 // VAPID public key (generated; matching private key stored in Vercel env vars)
@@ -1379,25 +1383,28 @@ function addSelectedQuickItems(){
 }
 
 // ── Autocomplete ──────────────────────────────────────────────────────────────
-let _acTarget = null, _acIdx = -1;
+let _acTarget = null, _acIdx = -1, _acPickPending = false;
 
 function acSuggestions(q) {
   q = q.trim().toLowerCase();
   if (!q) return [];
   const seen = new Set(), results = [];
-  const add = (name, cat) => {
+  const add = (name, source) => {
     const k = normalizeKey(name);
     if (seen.has(k)) return;
     seen.add(k);
-    results.push({ name, cat });
+    results.push({ name, source });
   };
-  meals.forEach(m => m.ingredients.forEach(i => { if (i.name) add(i.name, null); }));
-  currentList.forEach(i => { if (i.name) add(i.name, null); });
-  quickItems.forEach(i => { if (i.name) add(i.name, null); });
+  // Priorität 1: exakte Rezept-Zutaten-Namen
+  meals.forEach(m => m.ingredients.forEach(i => { if (i.name) add(i.name, 'recipe'); }));
+  // Priorität 2: Einkaufsliste + Merkliste
+  currentList.forEach(i => { if (i.name) add(i.name, 'list'); });
+  quickItems.forEach(i => { if (i.name) add(i.name, 'list'); });
+  // Priorität 3: CATEGORIES-Keywords
   CATEGORIES.forEach(cat => cat.keywords.forEach(kw => {
-    add(kw.charAt(0).toUpperCase() + kw.slice(1), cat.name);
+    add(kw.charAt(0).toUpperCase() + kw.slice(1), 'keyword');
   }));
-  results.forEach(r => { if (!r.cat) r.cat = categorize(r.name); });
+  results.forEach(r => { r.cat = categorize(r.name); });
   const starts = results.filter(r => r.name.toLowerCase().startsWith(q));
   const contains = results.filter(r => !r.name.toLowerCase().startsWith(q) && r.name.toLowerCase().includes(q));
   return [...starts, ...contains].slice(0, 6);
@@ -1416,7 +1423,11 @@ function acSearch(input) {
     const hl = qi >= 0
       ? item.name.slice(0,qi) + '<span class="ac-match">' + item.name.slice(qi, qi+qLo.length) + '</span>' + item.name.slice(qi+qLo.length)
       : item.name;
-    return `<div class="ac-item" data-name="${item.name.replace(/"/g,'&quot;')}" onmousedown="acPick(event)">${hl}<span class="ac-cat">${item.cat}</span></div>`;
+    const isRecipe = item.source === 'recipe';
+    const badge = isRecipe
+      ? `<span class="ac-recipe-badge">★</span>`
+      : `<span class="ac-cat">${item.cat}</span>`;
+    return `<div class="ac-item${isRecipe?' ac-recipe':''}" data-name="${item.name.replace(/"/g,'&quot;')}" onmousedown="acMouseDown(event)" ontouchstart="acTouchStart(event)"><span class="ac-name">${hl}</span>${badge}</div>`;
   }).join('');
   _acIdx = -1;
   const rect = input.getBoundingClientRect();
@@ -1429,16 +1440,30 @@ function acSearch(input) {
   }
 }
 
-function acPick(e) {
+function acMouseDown(e) {
   e.preventDefault();
   const name = e.currentTarget.dataset.name;
   if (_acTarget) { _acTarget.value = name; _acTarget.dispatchEvent(new Event('input')); }
   acClose();
 }
 
-function acBlur() { setTimeout(acClose, 150); }
+function acTouchStart(e) {
+  _acPickPending = true;
+  const name = e.currentTarget.dataset.name;
+  setTimeout(() => {
+    if (!_acPickPending) return;
+    _acPickPending = false;
+    if (_acTarget) { _acTarget.value = name; _acTarget.dispatchEvent(new Event('input')); _acTarget.focus(); }
+    acClose();
+  }, 0);
+}
+
+function acBlur() {
+  setTimeout(() => { if (!_acPickPending) acClose(); }, 200);
+}
 
 function acClose() {
+  _acPickPending = false;
   const dd = document.getElementById('ac-dropdown');
   if (dd) { dd.style.display = 'none'; dd.innerHTML = ''; }
   _acIdx = -1;
