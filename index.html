@@ -353,7 +353,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v2.1.2';
+const APP_VERSION = 'v2.1.3';
 
 // ── Push Notifications Config ─────────────────────────────────────────────────
 // VAPID public key (generated; matching private key stored in Vercel env vars)
@@ -1383,7 +1383,7 @@ function addSelectedQuickItems(){
 }
 
 // ── Autocomplete ──────────────────────────────────────────────────────────────
-let _acTarget = null, _acIdx = -1, _acPickPending = false;
+let _acTarget = null, _acIdx = -1, _acPickPending = false, _acBlurTimer = null;
 
 function acSuggestions(q) {
   q = q.trim().toLowerCase();
@@ -1411,6 +1411,7 @@ function acSuggestions(q) {
 }
 
 function acSearch(input) {
+  clearTimeout(_acBlurTimer);
   _acTarget = input;
   const q = input.value;
   const items = acSuggestions(q);
@@ -1459,10 +1460,11 @@ function acTouchStart(e) {
 }
 
 function acBlur() {
-  setTimeout(() => { if (!_acPickPending) acClose(); }, 200);
+  _acBlurTimer = setTimeout(() => { if (!_acPickPending) acClose(); }, 200);
 }
 
 function acClose() {
+  clearTimeout(_acBlurTimer);
   _acPickPending = false;
   const dd = document.getElementById('ac-dropdown');
   if (dd) { dd.style.display = 'none'; dd.innerHTML = ''; }
