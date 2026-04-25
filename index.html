@@ -346,6 +346,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <div class="toast" id="toast"></div>
 <div id="ac-dropdown" class="ac-dropdown" style="display:none"></div>
+<div id="ac-debug" style="position:fixed;bottom:4px;left:4px;right:4px;background:rgba(0,0,0,0.85);color:#0f0;font:11px monospace;padding:4px 8px;border-radius:6px;z-index:99999;pointer-events:none;max-height:60px;overflow:hidden">debug:bereit</div>
 
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -353,7 +354,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #1D9E75
 
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v2.1.4';
+const APP_VERSION = 'v2.1.5-debug';
 
 // ── Push Notifications Config ─────────────────────────────────────────────────
 // VAPID public key (generated; matching private key stored in Vercel env vars)
@@ -1208,7 +1209,7 @@ function renderIngList(){
   const el=document.getElementById('ing-list');
   el.innerHTML=formIngredients.map((ing,i)=>`<div class="ing-row"><input class="amt" type="text" inputmode="decimal" value="${ing.amt}" placeholder="Menge" oninput="formIngredients[${i}].amt=this.value"/>${unitSelect(ing.unit).replace('<select',`<select onchange="formIngredients[${i}].unit=this.value"`)}<input class="ingname" type="text" value="${ing.name}" placeholder="Bezeichnung" autocomplete="off" oninput="formIngredients[${i}].name=this.value;acSearch(this)" onfocus="acSearch(this)" onblur="acBlur()" onkeydown="acKey(event,this)"/><button class="btn icon-btn" onclick="removeIngRow(${i})">×</button></div>`).join('');
 }
-function addIngRow(){ formIngredients.push({amt:'',unit:'',name:''}); renderIngList(); setTimeout(()=>{ const rows=document.querySelectorAll('.ing-row'); if(rows.length)rows[rows.length-1].querySelector('.ingname').focus(); },50); }
+function addIngRow(){ formIngredients.push({amt:'',unit:'',name:''}); renderIngList(); setTimeout(()=>{ const rows=document.querySelectorAll('.ing-row'); if(rows.length){ const inp=rows[rows.length-1].querySelector('.ingname'); inp.focus(); dbg('addIngRow focused, rows='+rows.length); } },50); }
 function removeIngRow(i){ formIngredients.splice(i,1); renderIngList(); }
 function showRecipeForm(mealId){
   editingMealId=mealId||null;
@@ -1384,6 +1385,7 @@ function addSelectedQuickItems(){
 
 // ── Autocomplete ──────────────────────────────────────────────────────────────
 let _acTarget = null, _acIdx = -1, _acPickPending = false, _acBlurTimer = null;
+function dbg(msg){ const el=document.getElementById('ac-debug'); if(el) el.textContent='dbg:'+msg+' | t='+new Date().toISOString().slice(14,19); }
 
 function acSuggestions(q) {
   q = q.trim().toLowerCase();
@@ -1416,6 +1418,7 @@ function acSearch(input) {
   const q = input.value;
   const items = acSuggestions(q);
   const dd = document.getElementById('ac-dropdown');
+  dbg('search q="'+q+'" items='+items.length+' id='+(input.id||input.className));
   if (!items.length || !q.trim()) { acClose(); return; }
   const qLo = q.trim().toLowerCase();
   dd.innerHTML = items.map((item) => {
