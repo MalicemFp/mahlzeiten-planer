@@ -180,16 +180,17 @@ select{background:var(--fill);border:none;border-radius:12px;padding:11px 13px;f
 .edit-actions{display:flex;gap:9px;margin-top:13px;}
 .eb{padding:10px 14px;border-radius:12px;border:none;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;}
 .eb.ok{flex:1;background:var(--pri);color:#fff;box-shadow:0 3px 10px rgba(197,106,46,0.25);}
-.eb.x{flex:0 0 44px;background:#ECDFC9;color:#9A8259;}
-.eb.del{flex:0 0 44px;background:#FDECEA;color:#C0392B;font-size:16px;}
+.eb.x{flex:0 0 44px;background:#F5E8E5;color:#C99A8E;display:flex;align-items:center;justify-content:center;}
+.eb.del{flex:0 0 44px;background:#F5E8E5;color:#C99A8E;display:flex;align-items:center;justify-content:center;}
+.eb.del svg,.eb.x svg{width:18px;height:18px;stroke:currentColor;}
 .hint-row{font-size:11px;color:var(--tx3);padding:9px 10px 2px;text-align:center;}
-.add-form{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;padding:14px;background:var(--card);border-radius:16px;box-shadow:0 2px 10px rgba(120,90,40,0.05);align-items:center;}
-.add-form .aq{width:72px;flex-shrink:0;text-align:center;}
-.add-form select.au{flex:1;min-width:70px;flex-shrink:0;padding:11px 22px 11px 10px;font-size:13px;}
-.add-form .add-row1{display:flex;gap:8px;width:100%;align-items:center;}
-.add-form .add-row2{display:flex;gap:8px;width:100%;align-items:center;}
-.add-form .an{flex:1;min-width:0;}
-.add-form .aplus{width:42px;height:42px;flex-shrink:0;background:var(--pri);color:#fff;border:none;border-radius:11px;font-size:20px;cursor:pointer;}
+.add-form{display:flex;flex-direction:column;gap:8px;margin-top:14px;padding:14px;background:var(--card);border-radius:16px;box-shadow:0 2px 10px rgba(120,90,40,0.05);}
+.add-form .add-row1{display:flex;gap:8px;align-items:center;}
+.add-form .add-row2{display:flex;}
+.add-form .aq{width:60px;flex-shrink:0;text-align:center;font-size:14px;padding:10px 8px;}
+.add-form select.au{width:80px;flex-shrink:0;padding:10px 18px 10px 8px;font-size:13px;}
+.add-form .an{flex:1;min-width:0;width:100%;}
+.add-form .aplus{flex:1;height:42px;background:var(--pri);color:#fff;border:none;border-radius:11px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;}
 .actions-bar{display:flex;gap:8px;margin-top:14px;}
 .act{flex:1;padding:13px 6px;border-radius:13px;font-size:13px;font-weight:700;font-family:inherit;border:none;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;}
 .act.clear{background:var(--sec);color:var(--tx2);}
@@ -413,7 +414,7 @@ select{background:var(--fill);border:none;border-radius:12px;padding:11px 13px;f
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v2.2.1';
+const APP_VERSION = 'v2.2.2';
 
 // ── Push Notifications Config ─────────────────────────────────────────────────
 const VAPID_PUBLIC_KEY = 'BNJw_GGhM0OuazN-u5ussaZukuIL6T_U1clt5h4vHoVrmzZyH6d5QWxOm6INXooPjXQffYa8uChrCrcm0CsySlE';
@@ -1147,10 +1148,10 @@ function _addFormHtml(){
     <div class="add-row1">
       <input class="field aq" id="new-qty" placeholder="Menge" inputmode="decimal"/>
       <select class="au" id="new-unit">${_UNIT_OPTS.map(u=>`<option value="${u}">${u||'–'}</option>`).join('')}</select>
+      <button class="aplus" onclick="addItem()">Hinzufügen</button>
     </div>
     <div class="add-row2">
-      <input class="field an ingname" id="new-name" placeholder="Artikel hinzufügen" autocomplete="off" onkeydown="acKey(event,this);if(!event.defaultPrevented&&event.key==='Enter')addItem()"/>
-      <button class="aplus" onclick="addItem()">+</button>
+      <input class="field an ingname" id="new-name" placeholder="Artikel eingeben …" autocomplete="off" onkeydown="acKey(event,this);if(!event.defaultPrevented&&event.key==='Enter')addItem()"/>
     </div>
   </div>`;
 }
@@ -1197,7 +1198,7 @@ function renderShoppingList(){
           </div>
           <div class="edit-lab mt">Kategorie</div>
           <select id="ecat-${i}">${catOpts}</select>
-          <div class="edit-actions"><button class="eb del" onclick="deleteItem(${i})" title="Löschen">🗑</button><button class="eb ok" onclick="saveEdit(${i})">Speichern</button><button class="eb x" onclick="cancelEdit()">✕</button></div>
+          <div class="edit-actions"><button class="eb del" onclick="deleteItem(${i})" title="Löschen"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button><button class="eb ok" onclick="saveEdit(${i})">Speichern</button><button class="eb x" onclick="cancelEdit()" title="Abbrechen"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
         </div>`;
       } else {
         rows+=`<div class="sl-item${item.checked?' checked':''}">
