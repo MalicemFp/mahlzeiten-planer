@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mahlzeiten-planer-v34';
+const CACHE_NAME = 'mealsapp-v35';
 const ASSETS = [
   './',
   './index.html',
@@ -29,7 +29,7 @@ self.addEventListener('activate', event => {
 
 // Push: show notification when a push message arrives
 self.addEventListener('push', event => {
-  let data = { title: 'Mahlzeiten-Planer', body: 'Es gibt neue Änderungen.' };
+  let data = { title: 'MealsApp', body: 'Es gibt neue Änderungen.' };
   if (event.data) {
     try { data = event.data.json(); } catch(e) { data.body = event.data.text(); }
   }
