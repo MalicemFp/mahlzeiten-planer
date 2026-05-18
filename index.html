@@ -15,10 +15,11 @@
   --bg:#FBF7F1; --card:#FFFFFF; --pri:#C56A2E; --pri-d:#A8521C; --green:#1F8A63;
   --fill:#F3EDE0; --sec:#F0E9DB; --tx:#2A2118; --tx2:#6B5D4A; --tx3:#9A8B70;
   --line:#F2EDE2; --hero1:#FBE6CB; --hero2:#F8DBB8; --chip:#F4EFE5;
+  --navh:100px; --vh:100vh;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html{height:100%;overscroll-behavior:none;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden;overscroll-behavior:none;}
+html{overscroll-behavior:none;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);min-height:var(--vh);overflow-x:hidden;overscroll-behavior:none;}
 
 /* ── Sticky nav ── */
 .sticky-nav{position:sticky;top:0;z-index:100;background:var(--bg);}
@@ -76,7 +77,9 @@ select{background:var(--fill);border:none;border-radius:12px;padding:11px 13px;f
 /* ── Week planner ── */
 .week-section-header{font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:0.07em;padding:14px 6px 9px;}
 .week-section-header:first-child{padding-top:2px;}
-#week-card{display:flex;flex-direction:column;gap:9px;}
+#tab-planner{display:flex;flex-direction:column;}
+#week-card{display:flex;flex-direction:column;gap:9px;flex:1;min-height:0;}
+#week-card .day-row{flex:1 1 auto;}
 .day-row{display:flex;align-items:center;gap:13px;padding:14px 15px;background:var(--card);border-radius:18px;box-shadow:0 2px 9px rgba(120,90,40,0.05);min-height:62px;transition:background .1s,box-shadow .1s;}
 .day-row.is-today{background:linear-gradient(135deg,var(--hero1),var(--hero2));box-shadow:0 5px 18px rgba(197,106,46,0.18);}
 .day-row.is-past{opacity:0.6;box-shadow:none;background:#F6F1E8;}
@@ -419,7 +422,7 @@ select{background:var(--fill);border:none;border-radius:12px;padding:11px 13px;f
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v2.2.3';
+const APP_VERSION = 'v2.2.4';
 
 // ── Push Notifications Config ─────────────────────────────────────────────────
 const VAPID_PUBLIC_KEY = 'BNJw_GGhM0OuazN-u5ussaZukuIL6T_U1clt5h4vHoVrmzZyH6d5QWxOm6INXooPjXQffYa8uChrCrcm0CsySlE';
@@ -773,6 +776,15 @@ function renderWeekPlanner(){
   card.innerHTML=html;
 
   attachDragHandlers();
+  _noPast = pastDks.length===0;
+  if(typeof _fitPlanner==='function') _fitPlanner();
+}
+// Body-Scroll im Standardfall (nur 7 Tage, keine vergangenen) sperren,
+// damit nichts „ein paar Millimeter" scrollt. Mit vergangenen Tagen frei.
+let _noPast=true;
+function _applyScrollLock(){
+  const plannerActive=document.getElementById('tab-planner')&&document.getElementById('tab-planner').style.display!=='none';
+  document.body.style.overflowY=(plannerActive&&_noPast)?'hidden':'';
 }
 
 function renderDayRowHtml(dk, date, isPast){
@@ -1621,12 +1633,17 @@ function acKey(e, input) {
 }
 
 // ── Tab navigation ────────────────────────────────────────────────────────────
+function _resetScroll(){
+  const z=()=>{ window.scrollTo(0,0); document.documentElement.scrollTop=0; document.body.scrollTop=0; };
+  z(); requestAnimationFrame(()=>{ z(); requestAnimationFrame(z); });
+}
 function showTab(tab){
-  ['planner','list','db'].forEach(t=>document.getElementById('tab-'+t).style.display=t===tab?'block':'none');
+  ['planner','list','db'].forEach(t=>document.getElementById('tab-'+t).style.display=t===tab?'':'none');
   document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['planner','list','db'][i]===tab));
   if(tab==='db'){ renderDbList(); document.getElementById('db-view').style.display='block'; document.getElementById('db-form').style.display='none'; document.getElementById('db-quickform').style.display='none'; }
   if(tab==='list'){ cleanupCheckedItems(); renderShoppingList(); }
-  window.scrollTo(0,0);
+  _applyScrollLock();
+  _resetScroll();
 }
 
 // ── Service Worker ────────────────────────────────────────────────────────────
@@ -1671,6 +1688,20 @@ document.addEventListener('focusout', e => {
   if (e.target.matches(AC_SELECTOR)) acBlur();
 });
 
+// ── Header-Höhe messen (für exakt passenden Wochenplaner) ────────────────────
+function _fitPlanner(){
+  const nav=document.querySelector('.sticky-nav');
+  const tp=document.getElementById('tab-planner');
+  document.documentElement.style.setProperty('--vh', window.innerHeight+'px');
+  if(!nav||!tp) return;
+  // .content vertikales Padding (2 oben + 30 unten) + 4px Sicherheit
+  const avail=window.innerHeight - nav.offsetHeight - 36;
+  tp.style.minHeight=Math.max(avail,320)+'px';
+  _applyScrollLock();
+}
+window.addEventListener('resize', _fitPlanner);
+window.addEventListener('orientationchange', ()=>setTimeout(_fitPlanner,150));
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.getElementById('version-label').textContent=APP_VERSION;
 updateBellIcon();
@@ -1680,6 +1711,8 @@ setInterval(cleanupCheckedItems, 5*60*1000);
 renderWeekPlanner();
 renderShoppingList();
 updateBadge();
+_fitPlanner();
+requestAnimationFrame(_fitPlanner);
 initSync();
 </script>
 </body>
