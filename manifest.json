@@ -4,6 +4,7 @@
   "description": "Wochenplanung und Einkaufsliste für Mahlzeiten",
   "start_url": "./index.html",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#FBF7F1",
   "theme_color": "#C56A2E",
   "lang": "de",

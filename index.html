@@ -80,6 +80,9 @@ select{background:var(--fill);border:none;border-radius:12px;padding:11px 13px;f
 #tab-planner{display:flex;flex-direction:column;flex:1;min-height:0;}
 #week-card{display:flex;flex-direction:column;gap:9px;flex:1;min-height:0;}
 #week-card .day-row{flex:1 1 auto;}
+#tab-planner.has-past{flex:0 0 auto;}
+#tab-planner.has-past #week-card{flex:0 0 auto;}
+#tab-planner.has-past #week-card .day-row{flex:0 0 auto;}
 .day-row{display:flex;align-items:center;gap:13px;padding:14px 15px;background:var(--card);border-radius:18px;box-shadow:0 2px 9px rgba(120,90,40,0.05);min-height:62px;transition:background .1s,box-shadow .1s;}
 .day-row.is-today{background:linear-gradient(135deg,var(--hero1),var(--hero2));box-shadow:0 5px 18px rgba(197,106,46,0.18);}
 .day-row.is-past{opacity:0.6;box-shadow:none;background:#F6F1E8;}
@@ -402,7 +405,6 @@ select{background:var(--fill);border:none;border-radius:12px;padding:11px 13px;f
         <div class="sheet-title" id="sheet-title">Mahlzeit wählen</div>
         <div class="sheet-subtitle" id="sheet-subtitle"></div>
       </div>
-      <button class="sheet-close" onclick="closeDaySheet()">Schließen</button>
     </div>
     <div class="sheet-body" id="sheet-body"></div>
     <div class="sheet-footer">
@@ -422,7 +424,7 @@ select{background:var(--fill);border:none;border-radius:12px;padding:11px 13px;f
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v2.2.6';
+const APP_VERSION = 'v2.2.7';
 
 // ── Push Notifications Config ─────────────────────────────────────────────────
 const VAPID_PUBLIC_KEY = 'BNJw_GGhM0OuazN-u5ussaZukuIL6T_U1clt5h4vHoVrmzZyH6d5QWxOm6INXooPjXQffYa8uChrCrcm0CsySlE';
@@ -775,6 +777,9 @@ function renderWeekPlanner(){
   futureDays.forEach(date=>{ html+=renderDayRowHtml(dateKey(date), date, false); });
   card.innerHTML=html;
 
+  const tp=document.getElementById('tab-planner');
+  if(tp) tp.classList.toggle('has-past', pastDks.length>0);
+
   attachDragHandlers();
 }
 
@@ -944,8 +949,12 @@ function _doSwap(targetDk){
 }
 
 // ── Day sheet ─────────────────────────────────────────────────────────────────
+let _daySnapPlanned=null, _daySnapList=null, _dayCommitted=false;
 function openDaySheet(dk){
   openDateKey=dk;
+  _daySnapPlanned=JSON.parse(JSON.stringify(plannedDays));
+  _daySnapList=JSON.parse(JSON.stringify(currentList));
+  _dayCommitted=false;
   const date=dateFromKey(dk);
   const diff=Math.round((date.getTime()-TODAY.getTime())/86400000);
   let title;
@@ -1059,9 +1068,10 @@ function pickSpecial(key){
   renderSheetBody(openDateKey); renderWeekPlanner();
 }
 
-function confirmDaySheet(){ _mealsChanged=true; saveState(); closeDaySheet(); renderWeekPlanner(); }
+function confirmDaySheet(){ _dayCommitted=true; _mealsChanged=true; saveState(); closeDaySheet(); renderWeekPlanner(); }
 
 function pickClear(){
+  _dayCommitted=true;
   _mealsChanged=true;
   const dk=openDateKey; if(!dk)return;
   const plan=plannedDays[dk];
@@ -1078,7 +1088,16 @@ function clearDay(dk){
   saveState(); renderWeekPlanner(); renderShoppingList(); updateBadge();
 }
 
-function closeDaySheet(){ document.getElementById('day-overlay').classList.remove('open'); openDateKey=null; }
+function closeDaySheet(){
+  if(!_dayCommitted && _daySnapPlanned){
+    // Abbrechen / außerhalb tippen: alle Änderungen verwerfen
+    plannedDays=_daySnapPlanned;
+    currentList=_daySnapList;
+    renderWeekPlanner(); renderShoppingList(); updateBadge();
+  }
+  _daySnapPlanned=null; _daySnapList=null; _dayCommitted=false;
+  document.getElementById('day-overlay').classList.remove('open'); openDateKey=null;
+}
 function overlayClick(e){ if(e.target===document.getElementById('day-overlay')) closeDaySheet(); }
 
 // ── List integration ──────────────────────────────────────────────────────────
