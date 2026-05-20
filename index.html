@@ -442,7 +442,7 @@ select{background:var(--fill);border:none;border-radius:12px;padding:11px 13px;f
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v2.2.8';
+const APP_VERSION = 'v2.2.9';
 
 // ── Push Notifications Config ─────────────────────────────────────────────────
 const VAPID_PUBLIC_KEY = 'BNJw_GGhM0OuazN-u5ussaZukuIL6T_U1clt5h4vHoVrmzZyH6d5QWxOm6INXooPjXQffYa8uChrCrcm0CsySlE';
@@ -1715,15 +1715,34 @@ document.addEventListener('focusout', e => {
   if (e.target.matches(AC_SELECTOR)) acBlur();
 });
 
-// ── Shell-Höhe aus echter innerHeight (iOS finalisiert dvh erst nach Reflow) ──
+// ── Shell-Höhe: visualViewport schrumpft mit Tastatur, innerHeight nicht ──
 function _setShellH(){
-  const h=window.innerHeight;
+  const h=(window.visualViewport&&window.visualViewport.height)||window.innerHeight;
   if(h) document.body.style.height=h+'px';
 }
 window.addEventListener('resize', _setShellH);
 window.addEventListener('orientationchange', ()=>setTimeout(_setShellH,200));
-if(window.visualViewport) window.visualViewport.addEventListener('resize', _setShellH);
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize', _setShellH);
+  window.visualViewport.addEventListener('scroll', _setShellH);
+}
 window.addEventListener('load', ()=>{ _setShellH(); setTimeout(_setShellH,300); });
+
+// ── Fokussiertes Eingabefeld in Sicht scrollen wenn Tastatur erscheint ──
+function _ensureVisible(el){
+  if(!el||!el.isConnected) return;
+  const c=document.querySelector('.content'); if(!c) return;
+  const er=el.getBoundingClientRect(), cr=c.getBoundingClientRect();
+  if(er.bottom>cr.bottom-8 || er.top<cr.top+8){
+    el.scrollIntoView({block:'center', behavior:'smooth'});
+  }
+}
+document.addEventListener('focusin', e => {
+  if(e.target.matches('input, textarea, select')){
+    // Tastatur braucht Zeit zum Erscheinen + Layout muss schrumpfen
+    setTimeout(()=>_ensureVisible(e.target), 350);
+  }
+});
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.getElementById('version-label').textContent=APP_VERSION;
