@@ -18,7 +18,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html{height:100%;overscroll-behavior:none;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);height:100vh;height:100svh;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);position:fixed;top:0;left:0;width:100%;height:100vh;height:100svh;display:flex;flex-direction:column;overflow:hidden;}
 
 /* ── App-Shell: fixer Header + eigener Scroll-Container ── */
 .sticky-nav{flex:0 0 auto;z-index:100;background:var(--bg);}
@@ -49,7 +49,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .tab.active .badge{background:#fff;color:var(--pri);}
 .tab:not(.active) .badge{background:var(--pri);color:#fff;}
 
-.content{flex:1;min-height:0;display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:2px 14px 30px;width:100%;max-width:780px;margin:0 auto;}
+.content{flex:1;min-height:0;display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;padding:2px 14px 30px;width:100%;max-width:780px;margin:0 auto;scroll-padding:16px;}
+input,textarea,select{scroll-margin:16px;}
 #cat-assign-banner,#tab-list,#tab-db{flex:0 0 auto;}
 .section-title{font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:0.07em;margin:6px 6px 11px;}
 
@@ -442,7 +443,7 @@ select{background:var(--fill);border:none;border-radius:12px;padding:11px 13px;f
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v2.2.9';
+const APP_VERSION = 'v2.2.10';
 
 // ── Push Notifications Config ─────────────────────────────────────────────────
 const VAPID_PUBLIC_KEY = 'BNJw_GGhM0OuazN-u5ussaZukuIL6T_U1clt5h4vHoVrmzZyH6d5QWxOm6INXooPjXQffYa8uChrCrcm0CsySlE';
@@ -1715,10 +1716,20 @@ document.addEventListener('focusout', e => {
   if (e.target.matches(AC_SELECTOR)) acBlur();
 });
 
-// ── Shell-Höhe: visualViewport schrumpft mit Tastatur, innerHeight nicht ──
+// ── Shell an visualViewport koppeln ──
+// Body ist position:fixed; wir setzen height + top so dass er rigide an der
+// Visual-Viewport hängt. iOS kann dann nicht mehr "über den Rand" scrollen
+// wenn die Tastatur aufgeht.
 function _setShellH(){
-  const h=(window.visualViewport&&window.visualViewport.height)||window.innerHeight;
-  if(h) document.body.style.height=h+'px';
+  const vv=window.visualViewport;
+  const b=document.body.style;
+  if(vv){
+    b.height=vv.height+'px';
+    b.top=vv.offsetTop+'px';
+  } else {
+    b.height=window.innerHeight+'px';
+    b.top='0px';
+  }
 }
 window.addEventListener('resize', _setShellH);
 window.addEventListener('orientationchange', ()=>setTimeout(_setShellH,200));
@@ -1728,19 +1739,30 @@ if(window.visualViewport){
 }
 window.addEventListener('load', ()=>{ _setShellH(); setTimeout(_setShellH,300); });
 
-// ── Fokussiertes Eingabefeld in Sicht scrollen wenn Tastatur erscheint ──
+// ── Fokussiertes Eingabefeld in Sicht halten ──
+// Strategie: iOS macht ein eigenes Auto-Scroll wenn die Tastatur erscheint
+// und schießt dabei oft drüber. Wir preempten das (sync auf focusin) und
+// korrigieren nach Tastatur-Erscheinen via visualViewport.resize.
 function _ensureVisible(el){
   if(!el||!el.isConnected) return;
-  const c=document.querySelector('.content'); if(!c) return;
-  const er=el.getBoundingClientRect(), cr=c.getBoundingClientRect();
-  if(er.bottom>cr.bottom-8 || er.top<cr.top+8){
-    el.scrollIntoView({block:'center', behavior:'smooth'});
-  }
+  try { el.scrollIntoView({block:'center', behavior:'smooth'}); } catch(_) {}
 }
 document.addEventListener('focusin', e => {
-  if(e.target.matches('input, textarea, select')){
-    // Tastatur braucht Zeit zum Erscheinen + Layout muss schrumpfen
-    setTimeout(()=>_ensureVisible(e.target), 350);
+  if(!e.target.matches('input, textarea, select')) return;
+  const el=e.target;
+  // 1) SOFORT (vor iOS-Auto-Scroll) — synchron, ohne Animation
+  try { el.scrollIntoView({block:'center', behavior:'instant'}); } catch(_) {}
+  // 2) Nach Tastatur-Erscheinen (visualViewport schrumpft) nochmal sauber zentrieren
+  if(window.visualViewport){
+    const onResize = () => {
+      window.visualViewport.removeEventListener('resize', onResize);
+      requestAnimationFrame(()=>requestAnimationFrame(()=>_ensureVisible(el)));
+    };
+    window.visualViewport.addEventListener('resize', onResize);
+    // Fallback falls Tastatur schon offen war (kein resize-Event)
+    setTimeout(()=>_ensureVisible(el), 500);
+  } else {
+    setTimeout(()=>_ensureVisible(el), 350);
   }
 });
 
