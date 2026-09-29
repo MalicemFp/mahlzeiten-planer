@@ -1,0 +1,6 @@
+# Testumgebung: enthält eine Kopie der echten Daten, das Repo ist öffentlich
+tests/
+
+# Lokale Einstellungen
+.claude/
+.DS_Store

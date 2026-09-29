@@ -448,7 +448,7 @@ select{background:var(--fill);border:none;border-radius:12px;padding:11px 13px;f
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v2.3.0';
+const APP_VERSION = 'v2.3.1';
 
 // ── Push Notifications Config ─────────────────────────────────────────────────
 const VAPID_PUBLIC_KEY = 'BNJw_GGhM0OuazN-u5ussaZukuIL6T_U1clt5h4vHoVrmzZyH6d5QWxOm6INXooPjXQffYa8uChrCrcm0CsySlE';
@@ -1325,18 +1325,35 @@ function confirmDaySheet(){
   if(JSON.stringify(_dayDraft)===_dayDraftOrig){ closeDaySheet(); return; }
   const old=plannedDays[dk]||null;
   const draft=_dayDraft;
-  const ops={['plannedDays/'+dk]: planEntity(draft)};
-  if(old && old.inList && (!draft || draft.type!=='meal')) Object.assign(ops, contributionRemovalOps(dk));
+  // Maßgeblich ist der gespeicherte Stand, nicht der Entwurf: Beim Ab- und wieder Anwählen
+  // geht dem Entwurf das inList-Flag verloren
+  const wasOnList=!!(old&&old.inList);
+  const staysMealDay=!!(draft&&draft.type==='meal'&&arr(draft.meals).length);
+  let ops={};
+  if(wasOnList && !(staysMealDay && mealIdsKey(old)===mealIdsKey(draft))){
+    // Tag steht auf der Liste: alte Zutaten abziehen, bei Gericht-Tag die neuen dazurechnen
+    const work=listWork();
+    const removed=subtractDay(work, dk);
+    if(staysMealDay) addDay(work, dk, draft);
+    ops=listOps(work, removed);
+  }
+  const listChanged=Object.keys(ops).length>0;
+  const entity=planEntity(draft&&{...draft, inList:wasOnList&&staysMealDay});
+  if(!listChanged && JSON.stringify(entity)===JSON.stringify(planEntity(old))){ closeDaySheet(); return; }
+  ops['plannedDays/'+dk]=entity;
   _mealsChanged=true;
+  if(listChanged) _shoppingChanged=true;
   closeDaySheet();
   commit(ops);
+  if(listChanged && staysMealDay) showToast('Einkaufsliste angepasst ✓');
 }
+function mealIdsKey(p){ return arr(p&&p.meals).map(m=>jsId(m.mealId)).sort().join(','); }
 
 function pickClear(){
   const dk=openDateKey; if(!dk) return;
   const old=plannedDays[dk];
   const ops={['plannedDays/'+dk]: null};
-  if(old && old.inList) Object.assign(ops, contributionRemovalOps(dk));
+  if(old && old.inList){ Object.assign(ops, contributionRemovalOps(dk)); _shoppingChanged=true; }
   _mealsChanged=true;
   closeDaySheet();
   commit(ops);
@@ -1345,7 +1362,7 @@ function pickClear(){
 function clearDay(dk){
   const old=plannedDays[dk]; if(!old) return;
   const ops={['plannedDays/'+dk]: null};
-  if(old.inList) Object.assign(ops, contributionRemovalOps(dk));
+  if(old.inList){ Object.assign(ops, contributionRemovalOps(dk)); _shoppingChanged=true; }
   _mealsChanged=true;
   commit(ops);
 }
@@ -1357,12 +1374,16 @@ function closeDaySheet(){
 function overlayClick(e){ if(e.target===document.getElementById('day-overlay')) closeDaySheet(); }
 
 // ── List integration ──────────────────────────────────────────────────────────
-// Welche Listen-Einträge ändern sich, wenn die Zutaten eines Tages wieder abgezogen werden?
-function contributionRemovalOps(dk){
-  const ops={};
-  currentList.forEach(item=>{
-    if(!item.dayContributions||!item.dayContributions[dk]) return;
-    const it=JSON.parse(JSON.stringify(item));
+// Jeder Listen-Eintrag merkt sich, welcher Tag wie viel beigetragen hat (dayContributions).
+// Änderungen laufen über eine Arbeitskopie, geschrieben werden nur die berührten Einträge.
+function listWork(){ return currentList.map(i=>JSON.parse(JSON.stringify(i))); }
+
+// Zieht die Beiträge eines Tages ab. Gibt die IDs der Einträge zurück, die dadurch wegfallen.
+function subtractDay(work, dk){
+  const removed=[];
+  for(let i=work.length-1;i>=0;i--){
+    const it=work[i];
+    if(!it.dayContributions||!it.dayContributions[dk]) continue;
     const contrib=it.dayContributions[dk];
     delete it.dayContributions[dk];
     const {amt:existAmt,unit:existUnit}=parseQtyStr(it.qty);
@@ -1374,24 +1395,19 @@ function contributionRemovalOps(dk){
       else if(newAmt>0) it.qty=fmtAmt(newAmt)+(existUnit?' '+existUnit:'');
     } else if(!hasOther&&!it.manual&&!existAmt) keep=false;
     if(keep){
-      if(contrib.meals) arr(contrib.meals).forEach(mn=>{ const i=it.meals.indexOf(mn); if(i>=0)it.meals.splice(i,1); });
+      if(contrib.meals) arr(contrib.meals).forEach(mn=>{ const j=it.meals.indexOf(mn); if(j>=0)it.meals.splice(j,1); });
       it.combined=it.meals.length>1;
-      ops['list/'+it.id]=itemEntity(it);
-    } else ops['list/'+it.id]=null;
-  });
-  return ops;
+      it._touched=true;
+    } else { removed.push(it.id); work.splice(i,1); }
+  }
+  return removed;
 }
 
-function addDayToList(dk){
-  const plan=plannedDays[dk];
-  if(!plan||plan.type!=='meal'||!plan.meals||plan.meals.length===0)return;
-  _mealsChanged=true; _shoppingChanged=true;
+// Rechnet die Zutaten der Gerichte eines Tages dazu
+function addDay(work, dk, plan){
   const allIng=[];
-  plan.meals.forEach(pm=>{ const m=meals.find(x=>x.id===jsId(pm.mealId)); if(!m)return; m.ingredients.forEach(ing=>allIng.push({ingredient:ing,meal:m.name})); });
-  const dayItems=combineIngredients(allIng);
-  const work=currentList.map(i=>JSON.parse(JSON.stringify(i)));
-  const ops={};
-  dayItems.forEach(newItem=>{
+  arr(plan.meals).forEach(pm=>{ const m=meals.find(x=>x.id===jsId(pm.mealId)); if(!m)return; m.ingredients.forEach(ing=>allIng.push({ingredient:ing,meal:m.name})); });
+  combineIngredients(allIng).forEach(newItem=>{
     const key=normalizeKey(newItem.name);
     const existing=work.find(e=>normalizeKey(e.name)===key);
     const {amt:newAmt,unit:newUnit}=parseQtyStr(newItem.qty);
@@ -1404,13 +1420,35 @@ function addDayToList(dk){
       existing.combined=existing.meals.length>1;
       existing.dayContributions=existing.dayContributions||{};
       existing.dayContributions[dk]={qty:newAmt,unit:newUnit,meals:newItem.meals};
-      ops['list/'+existing.id]=itemEntity(existing);
+      existing._touched=true;
     } else {
       newItem.dayContributions={[dk]:{qty:newAmt,unit:newUnit,meals:newItem.meals}};
+      newItem._touched=true;
       work.push(newItem);
-      ops['list/'+newItem.id]=itemEntity(newItem);
     }
   });
+}
+
+function listOps(work, removed){
+  const ops={};
+  removed.forEach(id=>{ ops['list/'+id]=null; });
+  work.forEach(it=>{ if(it._touched) ops['list/'+it.id]=itemEntity(it); });
+  return ops;
+}
+
+// Welche Listen-Einträge ändern sich, wenn die Zutaten eines Tages wieder abgezogen werden?
+function contributionRemovalOps(dk){
+  const work=listWork();
+  return listOps(work, subtractDay(work, dk));
+}
+
+function addDayToList(dk){
+  const plan=plannedDays[dk];
+  if(!plan||plan.type!=='meal'||!plan.meals||plan.meals.length===0)return;
+  _mealsChanged=true; _shoppingChanged=true;
+  const work=listWork();
+  addDay(work, dk, plan);
+  const ops=listOps(work, []);
   ops['plannedDays/'+dk]=planEntity({...plan, inList:true});
   commit(ops);
   showToast('Zur Einkaufsliste hinzugefügt ✓');
