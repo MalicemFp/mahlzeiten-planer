@@ -59,19 +59,13 @@ input,textarea,select{scroll-margin:16px;}
 .btn.primary{background:var(--pri);color:#fff;box-shadow:0 3px 10px rgba(197,106,46,0.25);}
 .btn.primary:active{background:var(--pri-d);}
 .btn.sm{padding:8px 13px;font-size:13px;}
-.btn.danger-sm{padding:8px 13px;font-size:13px;color:#B5482E;background:#F7E3DC;}
 .btn.icon-btn{width:30px;height:30px;padding:0;background:#F1EADD;color:#B59A7A;font-size:17px;display:inline-flex;align-items:center;justify-content:center;}
 .btn-row{display:flex;gap:9px;margin-bottom:10px;}
 
 /* ── Custom fields & selects (kein OS-Look) ── */
 .field,input[type=text],input:not([type]),input[type=number]{background:var(--fill);border:none;border-radius:12px;padding:11px 13px;font-size:14px;color:var(--tx);font-family:inherit;width:100%;}
 .field::placeholder,input::placeholder{color:var(--tx3);}
-input:focus,.csel:focus{outline:2px solid rgba(197,106,46,0.35);}
-.csel{position:relative;display:flex;align-items:center;gap:9px;background:var(--fill);border:none;border-radius:12px;padding:11px 34px 11px 13px;font-size:14px;color:var(--tx);font-weight:600;font-family:inherit;width:100%;text-align:left;cursor:pointer;}
-.csel::after{content:'';position:absolute;right:14px;top:50%;width:8px;height:8px;border-right:2px solid var(--tx3);border-bottom:2px solid var(--tx3);transform:translateY(-65%) rotate(45deg);}
-.csel .swatch{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
-.csel.compact{padding:10px 26px 10px 11px;font-size:13px;font-weight:500;}
-.csel.compact::after{right:10px;}
+input:focus{outline:2px solid rgba(197,106,46,0.35);}
 /* native select fallback styled soft */
 select{background:var(--fill);border:none;border-radius:12px;padding:11px 13px;font-size:14px;color:var(--tx);font-family:inherit;width:100%;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml;charset=US-ASCII,%3Csvg width='10' height='7' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23A8987A' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:34px;}
 
@@ -212,7 +206,7 @@ select{background:var(--fill);border:none;border-radius:12px;padding:11px 13px;f
 .empty-state{text-align:center;padding:30px 16px;color:var(--tx3);font-size:14px;line-height:1.6;}
 
 /* ── Category-assign banner ── */
-#cat-assign-banner{background:linear-gradient(135deg,#FDF4E7,#FBEAD6);border-radius:18px;padding:16px 17px;margin-bottom:14px;box-shadow:0 3px 14px rgba(197,140,70,0.12);}
+#cat-assign-banner,#legacy-banner,#perm-banner{background:linear-gradient(135deg,#FDF4E7,#FBEAD6);border-radius:18px;padding:16px 17px;margin-bottom:14px;box-shadow:0 3px 14px rgba(197,140,70,0.12);}
 .cat-assign-top{display:flex;align-items:flex-start;gap:11px;}
 .cat-assign-ic{width:30px;height:30px;border-radius:9px;background:#F6DCBB;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
 .cat-assign-header{font-size:14px;font-weight:700;color:var(--tx);}
@@ -255,7 +249,6 @@ select{background:var(--fill);border:none;border-radius:12px;padding:11px 13px;f
 .ing-row .ingname{flex:1;min-width:0;background:var(--fill);border:none;border-radius:11px;padding:11px 12px;font-size:14px;font-family:inherit;color:var(--tx);}
 .ing-list{margin-bottom:6px;}
 .adding-btn{background:none;border:none;color:var(--pri);font-size:14px;font-weight:700;font-family:inherit;padding:8px 2px;cursor:pointer;}
-.divider{border:none;border-top:1px solid var(--line);margin:16px 0;}
 
 /* ── Recolor popover ── */
 .recolor-pop{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(340px,calc(100vw - 40px));background:var(--card);border-radius:18px;padding:18px;box-shadow:0 16px 44px rgba(60,40,15,0.3);z-index:300;display:none;}
@@ -331,6 +324,8 @@ select{background:var(--fill);border:none;border-radius:12px;padding:11px 13px;f
 
 <div class="content">
 
+  <div id="perm-banner" style="display:none"></div>
+  <div id="legacy-banner" style="display:none"></div>
   <div id="cat-assign-banner" style="display:none"></div>
 
   <!-- ── Wochenplaner ── -->
@@ -342,6 +337,16 @@ select{background:var(--fill);border:none;border-radius:12px;padding:11px 13px;f
   <!-- ── Einkaufsliste ── -->
   <div id="tab-list" style="display:none">
     <div id="list-content"></div>
+    <div class="add-form" id="add-form">
+      <div class="add-row1">
+        <input class="field aq" id="new-qty" placeholder="Menge" inputmode="decimal"/>
+        <select class="au" id="new-unit"><option value="">–</option><option value="Stück">Stück</option><option value="g">g</option><option value="kg">kg</option><option value="ml">ml</option><option value="l">l</option><option value="EL">EL</option><option value="TL">TL</option><option value="Pck.">Pck.</option><option value="Bund">Bund</option><option value="Dose">Dose</option></select>
+        <button class="aplus" onclick="addItem()">Hinzufügen</button>
+      </div>
+      <div class="add-row2">
+        <input class="field an ingname" id="new-name" placeholder="Artikel eingeben …" autocomplete="off" onkeydown="acKey(event,this);if(!event.defaultPrevented&&event.key==='Enter')addItem()"/>
+      </div>
+    </div>
     <div class="actions-bar">
       <button class="act clear" onclick="clearShoppingList()">Leeren</button>
       <button class="act share" onclick="exportList()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>Teilen</button>
@@ -443,7 +448,7 @@ select{background:var(--fill);border:none;border-radius:12px;padding:11px 13px;f
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script>
 // ── Version ───────────────────────────────────────────────────────────────────
-const APP_VERSION = 'v2.2.11';
+const APP_VERSION = 'v2.3.0';
 
 // ── Push Notifications Config ─────────────────────────────────────────────────
 const VAPID_PUBLIC_KEY = 'BNJw_GGhM0OuazN-u5ussaZukuIL6T_U1clt5h4vHoVrmzZyH6d5QWxOm6INXooPjXQffYa8uChrCrcm0CsySlE';
@@ -461,13 +466,10 @@ const FIREBASE_CONFIG = {
 };
 
 let db = null;
-const FIREBASE_READY = !Object.values(FIREBASE_CONFIG).some(v => v.startsWith('FIREBASE_'));
-if (FIREBASE_READY) {
+if (typeof firebase !== 'undefined') {
   try { firebase.initializeApp(FIREBASE_CONFIG); db = firebase.database(); }
   catch(e) { console.warn('Firebase init failed:', e); }
 }
-
-let _localWrite = false, _localWriteTimer = null;
 
 function setSyncStatus(status) {
   const dot=document.getElementById('sync-dot'), lbl=document.getElementById('sync-label');
@@ -531,16 +533,9 @@ function _pickPoolColor(usedArr){
   }
   return best;
 }
-function ensureFolderColors(){
-  let changed=false;
-  getFolderList().forEach(f=>{
-    if(folderColors[f]) return;
-    const used=Object.values(folderColors);
-    let c=FOLDER_SEED[f];
-    if(!c||used.includes(c)) c=_pickPoolColor(used);
-    folderColors[f]=c; changed=true;
-  });
-  if(changed) saveState();
+function _colorForNewFolder(folder, used){
+  const seed=FOLDER_SEED[folder];
+  return (seed && !used.includes(seed)) ? seed : _pickPoolColor(used);
 }
 const DEFAULT_MEALS = [
   { id:1, name:"Spaghetti Bolognese", folder:"", ingredients:[{amt:"500",unit:"g",name:"Hackfleisch"},{amt:"2",unit:"",name:"Zwiebeln"},{amt:"3",unit:"",name:"Knoblauchzehen"},{amt:"1",unit:"Dose",name:"Tomaten"},{amt:"200",unit:"g",name:"Spaghetti"},{amt:"",unit:"",name:"Parmesan"},{amt:"",unit:"",name:"Olivenöl"},{amt:"",unit:"",name:"Salz & Pfeffer"}] },
@@ -557,17 +552,9 @@ const LS = {
   load(key,def){ try{ const v=localStorage.getItem('mp_'+key); return v!=null?JSON.parse(v):def; }catch(e){ return def; } }
 };
 
-// ── State ─────────────────────────────────────────────────────────────────────
-let meals            = LS.load('meals', DEFAULT_MEALS);
-let currentList      = LS.load('currentList', []);
-let plannedDays      = LS.load('plannedDays', {});
-let nextId           = LS.load('nextId', 7);
-let nextItemId       = LS.load('nextItemId', 1000);
-let hideChecked      = LS.load('hideChecked', false);
-let customCategories = LS.load('customCategories', {});
-let quickItems      = LS.load('quickItems', []);
-let nextQuickId     = LS.load('nextQuickId', 1);
-let folderColors    = LS.load('folderColors', {});
+// ── Anzeige-Zustand (wird immer aus dem synchronisierten Stand abgeleitet) ────
+let meals=[], currentList=[], plannedDays={}, customCategories={}, quickItems=[], folderColors={};
+let hideChecked = LS.load('hideChecked', false);
 // ── Device ID (persistent per browser/device) ─────────────────────────────────
 let deviceId = LS.load('deviceId', null);
 if (!deviceId) { deviceId = 'dev_' + Math.random().toString(36).slice(2, 10); LS.save('deviceId', deviceId); }
@@ -579,46 +566,258 @@ let _pushCache = null;
 let pendingCategoryChecks = [];
 let _selectedQuickIds = new Set();
 let quickFormCollapsed = {};
-let editingIdx=null, editingMealId=null, formIngredients=[], collapsedFolders={};
+let editingItemId=null, editingMealId=null, formIngredients=[];
 let openDateKey=null, sheetCollapsedFolders={};
 let dbCollapsedFolders={};
 let _recolorFolder=null;
 
-// ── Save & Sync ───────────────────────────────────────────────────────────────
-function saveState() {
-  LS.save('meals',meals); LS.save('currentList',currentList); LS.save('plannedDays',plannedDays);
-  LS.save('nextId',nextId); LS.save('nextItemId',nextItemId); LS.save('customCategories',customCategories);
-  LS.save('quickItems',quickItems); LS.save('nextQuickId',nextQuickId); LS.save('folderColors',folderColors);
-  if(db){
-    setSyncStatus('syncing'); _localWrite=true; clearTimeout(_localWriteTimer);
-    db.ref('household').set({meals,currentList,plannedDays,nextId,nextItemId,customCategories,quickItems,nextQuickId,folderColors})
-      .then(()=>{ setSyncStatus('online'); _localWriteTimer=setTimeout(()=>{ _localWrite=false; },2000); })
-      .catch(()=>{ setSyncStatus(''); _localWrite=false; });
+// ══ Sync-Schicht ═══════════════════════════════════════════════════════════════
+// Daten liegen unter /v2 als Maps (ID → Eintrag). Jede Änderung schreibt nur die
+// betroffenen Einträge per atomarem Multi-Path-Update – kein Gerät überschreibt je
+// den Gesamtstand des anderen. Jede Änderung landet zuerst in einer lokalen Outbox
+// und wird erst nach Server-Bestätigung daraus entfernt. Beendet iOS die App, bevor
+// gesendet wurde, wird beim nächsten Start nachgesendet.
+const ROOT = 'v2';
+const COLS = ['meals','list','plannedDays','categories','quick','folderColors'];
+let _store = null;              // letzter bekannter Server-Stand (bzw. lokaler Cache)
+let _outbox = LS.load('outbox2', []);
+const _inflight = new Set();    // in dieser Sitzung gesendet, Bestätigung ausstehend
+let _hydrated = false;          // erster Server-Stand empfangen?
+let _connected = false;
+let _migrating = false;
+let _renderedSig = '';
+
+// Firebase verbietet . # $ / [ ] in Schlüsseln → Namen, die als Schlüssel dienen, kodieren
+function encKey(s){ return String(s).replace(/[%.#$\/\[\]\x00-\x1f\x7f]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2,'0')); }
+function decKey(s){ return String(s).replace(/%([0-9A-F]{2})/g, (_,h) => String.fromCharCode(parseInt(h,16))); }
+function catPath(name){ const nk=normalizeKey(name||''); return nk ? 'categories/'+encKey(nk) : null; }
+function newId(){ return db ? db.ref().push().key : '-L'+Date.now().toString(36)+Math.random().toString(36).slice(2,10); }
+function jsId(id){ return String(id).replace(/[^A-Za-z0-9_-]/g,''); }
+function arr(x){ return Array.isArray(x) ? x.filter(v=>v!=null) : (x && typeof x==='object' ? Object.values(x).filter(v=>v!=null) : []); }
+// So wie Firebase speichert: undefined/null sowie leere Objekte und Arrays entfallen
+function fbNormalize(v){
+  if(v===undefined||v===null) return undefined;
+  if(Array.isArray(v)){ const a=v.map(fbNormalize).filter(x=>x!==undefined); return a.length?a:undefined; }
+  if(typeof v==='object'){ const o={}; for(const [k,x] of Object.entries(v)){ const n=fbNormalize(x); if(n!==undefined) o[k]=n; } return Object.keys(o).length?o:undefined; }
+  if(typeof v==='number' && !isFinite(v)) return undefined;
+  return v;
+}
+function clean(o){ const n=fbNormalize(o); return n===undefined?{}:n; }
+function stableStr(v){
+  if(v===null||typeof v!=='object') return JSON.stringify(v);
+  if(Array.isArray(v)) return '['+v.map(stableStr).join(',')+']';
+  return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+stableStr(v[k])).join(',')+'}';
+}
+// Firebase liefert Knoten mit rein numerischen Schlüsseln (z.B. übernommene IDs 1…59)
+// als Array mit Lücken zurück → immer in eine Map ID → Eintrag umwandeln
+function toMap(x){
+  if(Array.isArray(x)){ const o={}; x.forEach((v,i)=>{ if(v!=null) o[String(i)]=v; }); return o; }
+  if(x && typeof x==='object'){ const o={}; for(const [k,v] of Object.entries(x)) if(v!=null) o[k]=v; return o; }
+  return {};
+}
+function normalizeStore(v){ v=v||{}; const s={meta:v.meta||null}; COLS.forEach(c=>{ s[c]=toMap(v[c]); }); return s; }
+function validPath(p){ const m=/^([A-Za-z]+)\/([^\/.#$\[\]]+)$/.exec(p); return !!m && COLS.includes(m[1]); }
+function applyOpsTo(store, ops){
+  for(const [p,v] of Object.entries(ops)){
+    const i=p.indexOf('/'), col=p.slice(0,i), key=p.slice(i+1);
+    if(v===null||v===undefined) delete store[col][key]; else store[col][key]=v;
   }
 }
+function viewStore(){ const s=JSON.parse(JSON.stringify(_store)); _outbox.forEach(e=>applyOpsTo(s, e.ops)); return s; }
 
-function renderAll(){ ensureFolderColors(); renderWeekPlanner(); renderShoppingList(); updateBadge(); }
+// Entitäten in genau der Form, in der sie gespeichert werden
+function itemEntity(it){
+  return clean({ name:it.name||'', qty:it.qty||'', meals:arr(it.meals), combined:!!it.combined, manual:!!it.manual,
+    checked:!!it.checked, checkedAt:(it.checked&&it.checkedAt)?it.checkedAt:undefined,
+    dayContributions:it.dayContributions||{} });
+}
+function mealEntity(m){
+  return clean({ name:m.name||'', folder:m.folder||'', ingredients:arr(m.ingredients).map(i=>({amt:String(i.amt??''), unit:i.unit||'', name:i.name||''})) });
+}
+function planEntity(p){
+  if(!p||!p.type) return null;
+  const e={type:p.type, inList:!!p.inList, eaten:!!p.eaten};
+  if(p.type==='meal') e.meals=arr(p.meals).map(m=>({mealId:jsId(m.mealId), name:m.name||'', folder:m.folder||''}));
+  return clean(e);
+}
+// Alter Datenstand (v1: /household bzw. alter lokaler Cache) → neue Struktur
+function storeFromV1(o){
+  o=o||{};
+  const s=normalizeStore(null);
+  arr(o.meals).forEach(m=>{ if(m.id!=null) s.meals[jsId(m.id)]=mealEntity(m); });
+  arr(o.currentList).forEach(i=>{ if(i.id!=null) s.list[jsId(i.id)]=itemEntity(i); });
+  Object.entries(o.plannedDays||{}).forEach(([dk,p])=>{ const e=planEntity(p); if(e) s.plannedDays[dk]=e; });
+  Object.entries(o.customCategories||{}).forEach(([k,c])=>{ if(k&&c) s.categories[encKey(k)]=c; });
+  arr(o.quickItems).forEach(q=>{ if(q.id!=null) s.quick[jsId(q.id)]={name:q.name||''}; });
+  Object.entries(o.folderColors||{}).forEach(([k,c])=>{ if(k&&c) s.folderColors[encKey(k)]=c; });
+  return s;
+}
+
+// Einzige Stelle, an der Daten geändert werden. ops = { 'list/<id>': Eintrag|null, … }
+function commit(ops){
+  const now=Date.now(), out={};
+  for(const [p,v] of Object.entries(ops)){
+    if(!validPath(p)){ console.warn('Ungültiger Pfad verworfen:', p); continue; }
+    let x=(v&&typeof v==='object'&&!Array.isArray(v))?{...v,u:now}:v;
+    x=fbNormalize(x);
+    out[p]=(x===undefined)?null:x;
+  }
+  if(!Object.keys(out).length) return;
+  const entry={k:now.toString(36)+Math.random().toString(36).slice(2,8), t:now, ops:out};
+  _outbox.push(entry); LS.save('outbox2', _outbox);
+  rebuildAndRender();
+  if(db && _hydrated) sendEntry(entry);   // vor der ersten Server-Antwort: bleibt in der Outbox
+  updateSyncStatus();
+}
+function sendEntry(entry){
+  _inflight.add(entry.k);
+  try{
+    db.ref(ROOT).update(entry.ops)
+      .then(()=>{ _inflight.delete(entry.k); ackOutbox(entry.k); })
+      .catch(err=>{ _inflight.delete(entry.k); console.warn('Sync-Fehler:', err); showToast('Speichern fehlgeschlagen – wird erneut versucht'); updateSyncStatus(); });
+  }catch(err){
+    _inflight.delete(entry.k); console.error('Änderung verworfen:', err, entry.ops);
+    ackOutbox(entry.k); showToast('Speichern fehlgeschlagen');
+  }
+}
+function ackOutbox(k){
+  const n=_outbox.length; _outbox=_outbox.filter(e=>e.k!==k);
+  if(_outbox.length!==n){ LS.save('outbox2', _outbox); rebuildAndRender(); updateSyncStatus(); }
+}
+// Nachsenden, was in einer früheren Sitzung nicht mehr bestätigt wurde.
+// Pro Eintrag per Transaktion: Hat der Server inzwischen eine NEUERE Version, gewinnt die.
+function replayOutbox(){
+  if(!db||!_hydrated) return;
+  const cutoff=Date.now()-14*86400000;
+  if(_outbox.some(e=>e.t<cutoff)){ _outbox=_outbox.filter(e=>e.t>=cutoff); LS.save('outbox2', _outbox); }
+  _outbox.filter(e=>!_inflight.has(e.k)).forEach(e=>{
+    _inflight.add(e.k);
+    const paths=Object.keys(e.ops); let left=paths.length, failed=false;
+    paths.forEach(p=>{
+      const val=e.ops[p];
+      db.ref(ROOT+'/'+p).transaction(cur=>{
+        const cu=(cur&&typeof cur==='object'&&cur.u)||0;
+        if(cu>e.t) return;          // neuere Änderung auf dem Server → nicht überschreiben
+        return val;
+      }, err=>{
+        if(err) failed=true;
+        if(--left===0){ _inflight.delete(e.k); if(!failed) ackOutbox(e.k); else updateSyncStatus(); }
+      }, true);
+    });
+  });
+}
+function updateSyncStatus(){
+  if(!db || !_connected || _permDenied){ setSyncStatus(''); return; }
+  setSyncStatus(_outbox.length ? 'syncing' : 'online');
+}
 
 function initSync() {
-  if (db) {
-    db.ref('push').on('value', snap => { _pushCache = snap.val(); });
-  }
   if(!db){ setSyncStatus(''); return; }
-  db.ref('.info/connected').on('value',snap=>{ if(!snap.val())setSyncStatus(''); else if(!_localWrite)setSyncStatus('online'); });
-  db.ref('household').on('value',snapshot=>{
-    if(_localWrite)return;
-    const data=snapshot.val();
-    if(!data){ saveState(); return; }
-    meals=data.meals||DEFAULT_MEALS; currentList=data.currentList||[];
-    plannedDays=data.plannedDays||{}; nextId=data.nextId||7; nextItemId=data.nextItemId||1000;
-    customCategories=data.customCategories||{};
-    quickItems=data.quickItems||[]; nextQuickId=data.nextQuickId||1;
-    folderColors=data.folderColors||{};
-    LS.save('meals',meals); LS.save('currentList',currentList); LS.save('plannedDays',plannedDays);
-    LS.save('nextId',nextId); LS.save('nextItemId',nextItemId); LS.save('customCategories',customCategories);
-    LS.save('quickItems',quickItems); LS.save('nextQuickId',nextQuickId); LS.save('folderColors',folderColors);
-    if(editingIdx===null&&editingMealId===null){ renderAll(); showToast('Aktualisiert ✓'); }
+  db.ref('push').on('value', snap => { _pushCache = snap.val(); });
+  db.ref('.info/connected').on('value', s=>{ _connected=!!s.val(); updateSyncStatus(); if(_connected) scheduleHousekeeping(); });
+  attachStoreListener();
+}
+// Sperren die Firebase-Regeln den Datenbereich, gehen keine Änderungen verloren:
+// Sie bleiben in der Outbox, ein Hinweis erscheint, und alle 60 s wird neu verbunden.
+let _permDenied=false;
+function attachStoreListener(){
+  db.ref(ROOT).on('value', snap=>{
+    if(_permDenied){ _permDenied=false; document.getElementById('perm-banner').style.display='none'; }
+    const v=snap.val();
+    if(!v || !v.meta){ migrateIfNeeded(); return; }
+    const first=!_hydrated;
+    _store=normalizeStore(v);
+    LS.save('state2', _store);
+    if(first){ _hydrated=true; window.__hydrated=true; replayOutbox(); watchLegacyClients(); }
+    const changed=rebuildAndRender();
+    if(changed && !first) showToast('Aktualisiert ✓');
+    scheduleHousekeeping();
+  }, err=>{
+    console.warn('Lesefehler:', err);
+    if(/permission/i.test(String((err&&err.code)||'')+' '+String((err&&err.message)||err))){
+      _permDenied=true; showPermBanner(); setTimeout(attachStoreListener, 60000);
+    }
+    updateSyncStatus();
   });
+}
+function showPermBanner(){
+  const el=document.getElementById('perm-banner'); if(!el) return;
+  el.innerHTML=`<div class="cat-assign-top"><div class="cat-assign-ic">🔒</div><div><div class="cat-assign-header">Synchronisierung noch gesperrt</div><span class="cat-assign-sub">Die Firebase-Regeln erlauben den neuen Datenbereich noch nicht. Deine Änderungen bleiben auf diesem Gerät gespeichert und werden automatisch nachgesendet, sobald das freigegeben ist.</span></div></div>`;
+  el.style.display='block';
+}
+// Einmalig: alten Stand (/household) in die neue Struktur übernehmen.
+// /household bleibt unverändert als Sicherung erhalten.
+async function migrateIfNeeded(){
+  if(_migrating) return; _migrating=true;
+  try{
+    const old=(await db.ref('household').once('value')).val();
+    const base=old ? storeFromV1(old) : storeFromV1({meals:DEFAULT_MEALS});
+    await db.ref(ROOT).transaction(cur=>{
+      if(cur && cur.meta) return;               // ein anderes Gerät war schneller
+      const data=JSON.parse(JSON.stringify(base));
+      if(cur) COLS.forEach(c=>{ if(cur[c]) data[c]={...data[c], ...cur[c]}; });
+      data.meta={schema:2, migratedAt:Date.now(), from: old?'household':'defaults'};
+      return fbNormalize(data);
+    });
+  }catch(e){ console.warn('Migration fehlgeschlagen:', e); }
+  finally{ _migrating=false; }
+}
+// Übergang: Schreibt nach der Umstellung noch ein Gerät mit der ALTEN App-Version in
+// /household, kommen dessen Änderungen hier nicht an. Dann einen Hinweis zeigen.
+// (Nur in den ersten 14 Tagen nach der Umstellung, danach entfällt der Wächter.)
+function watchLegacyClients(){
+  const migratedAt=(_store.meta&&_store.meta.migratedAt)||0;
+  if(!db || !migratedAt || Date.now()-migratedAt>14*86400000) return;
+  let base=null;
+  db.ref('household').on('value', s=>{
+    const h=stableStr(s.val());
+    if(base===null){ base=h; return; }
+    if(h!==base){ base=h; showLegacyBanner(); }
+  });
+}
+function showLegacyBanner(){
+  const el=document.getElementById('legacy-banner'); if(!el) return;
+  el.innerHTML=`<div class="cat-assign-top"><div class="cat-assign-ic">📱</div><div><div class="cat-assign-header">Ein Gerät nutzt noch die alte Version</div><span class="cat-assign-sub">Änderungen von dort kommen hier nicht an. Bitte auf dem anderen iPhone die App ganz schließen (aus dem App-Umschalter wischen) und neu öffnen.</span></div></div><div class="cat-assign-row"><button class="btn sm" onclick="document.getElementById('legacy-banner').style.display='none'">Verstanden</button></div>`;
+  el.style.display='block';
+}
+// Automatische Aufräumarbeiten nur auf frischen Serverdaten, nie auf altem Cache
+let _hkTimer=null;
+function scheduleHousekeeping(){ clearTimeout(_hkTimer); _hkTimer=setTimeout(runHousekeeping, 1500); }
+function runHousekeeping(){ if(!db||!_hydrated||!_connected) return; ensureFolderColors(); cleanupCheckedItems(); }
+
+function _idOrder(a,b){ const na=/^\d+$/.test(a.id), nb=/^\d+$/.test(b.id); if(na&&nb) return a.id-b.id; if(na) return -1; if(nb) return 1; return a.id<b.id?-1:(a.id>b.id?1:0); }
+function rebuildFromView(s){
+  meals=Object.entries(s.meals).map(([id,m])=>({id, name:m.name||'', folder:m.folder||'', ingredients:arr(m.ingredients)})).sort(_idOrder);
+  customCategories={}; Object.entries(s.categories).forEach(([k,c])=>{ customCategories[decKey(k)]=c; });
+  folderColors={}; Object.entries(s.folderColors).forEach(([k,c])=>{ folderColors[decKey(k)]=c; });
+  quickItems=Object.entries(s.quick).map(([id,q])=>({id, name:(q&&q.name)||''})).sort(_idOrder);
+  plannedDays={};
+  Object.entries(s.plannedDays).forEach(([dk,p])=>{ if(p&&p.type) plannedDays[dk]={type:p.type, meals:arr(p.meals), inList:!!p.inList, eaten:!!p.eaten}; });
+  currentList=sortByCategory(Object.entries(s.list).map(([id,i])=>({ id, name:i.name||'', qty:i.qty||'', meals:arr(i.meals),
+    combined:!!i.combined, manual:!!i.manual, checked:!!i.checked, checkedAt:i.checkedAt||0,
+    dayContributions:(i.dayContributions&&typeof i.dayContributions==='object')?i.dayContributions:{} })));
+}
+// Neu aufbauen und anzeigen – nur wenn sich wirklich etwas geändert hat
+function rebuildAndRender(force){
+  const view=viewStore();
+  const sig=stableStr(view);
+  if(!force && sig===_renderedSig) return false;
+  _renderedSig=sig;
+  rebuildFromView(view);
+  refreshToday();
+  if(_isDragging) _plannerDirty=true; else renderWeekPlanner();
+  if(editingItemId!==null && !currentList.some(i=>i.id===editingItemId)){
+    editingItemId=null; showToast('Artikel wurde auf dem anderen Gerät entfernt');
+  }
+  if(editingItemId===null) renderShoppingList();   // offene Bearbeitung nicht zerstören
+  updateBadge();
+  if(document.getElementById('tab-db').style.display!=='none'){
+    renderDbList();
+    if(document.getElementById('db-quickform').style.display!=='none') renderQuickFormView();
+  }
+  if(openDateKey) renderSheetBody(openDateKey);
+  if(document.getElementById('quickbuy-overlay').classList.contains('open')) renderQuickBuySheet();
+  return true;
 }
 
 // ── Push Notifications ────────────────────────────────────────────────────────
@@ -678,10 +877,8 @@ function sendPushToOthers() {
   _mealsChanged = false; _shoppingChanged = false;
   const pushData = _pushCache;
   if (!pushData) return;
-  let sent = 0;
   for (const [did, info] of Object.entries(pushData)) {
     if (did === deviceId || !info.subscription) continue;
-    sent++;
     fetch(PUSH_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -689,7 +886,6 @@ function sendPushToOthers() {
       keepalive: true
     }).catch(() => {});
   }
-
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -705,17 +901,17 @@ function checkSonstiges(name){
   if(!name||!name.trim()) return;
   if(categorize(name)!=='Sonstiges') return;
   const nk=normalizeKey(name);
-  if(pendingCategoryChecks.find(p=>p.nk===nk)) return;
+  if(!nk || pendingCategoryChecks.find(p=>p.nk===nk)) return;
   pendingCategoryChecks.push({name:name.trim(), nk});
   renderCategoryBanner();
 }
 function doAssignCategory(i){
   const p=pendingCategoryChecks[i]; if(!p) return;
   const sel=document.getElementById('catsel-'+i); if(!sel||!sel.value) return;
-  customCategories[p.nk]=sel.value;
+  const path=catPath(p.name);
   pendingCategoryChecks.splice(i,1);
-  currentList=sortByCategory(currentList);
-  saveState(); renderShoppingList(); renderCategoryBanner();
+  if(path) commit({[path]: sel.value});
+  renderCategoryBanner();
 }
 function dismissCategoryCheck(i){
   pendingCategoryChecks.splice(i,1); renderCategoryBanner();
@@ -727,7 +923,7 @@ function renderCategoryBanner(){
   const opts=CATEGORIES.map(c=>`<option value="${c.name}">${c.name}</option>`).join('');
   el.innerHTML=`<div class="cat-assign-top"><div class="cat-assign-ic">📂</div><div><div class="cat-assign-header">Kategorie noch offen</div><span class="cat-assign-sub">Einmal zuordnen, dann dauerhaft auf allen Geräten gemerkt</span></div></div>`+
     pendingCategoryChecks.map((p,i)=>`<div class="cat-assign-row">
-      <span class="cat-assign-name">„${p.name}"</span>
+      <span class="cat-assign-name">„${escHtml(p.name)}"</span>
       <select id="catsel-${i}" class="cat-assign-select"><option value="">Kategorie wählen …</option>${opts}</select>
       <button class="btn primary sm" onclick="doAssignCategory(${i})">✓</button>
       <button class="btn sm" onclick="dismissCategoryCheck(${i})">✕</button>
@@ -737,11 +933,10 @@ function sortByCategory(list){
   const order=CATEGORIES.map(c=>c.name);
   return [...list].sort((a,b)=>{ const ca=order.indexOf(categorize(a.name)),cb=order.indexOf(categorize(b.name)); return ca!==cb?ca-cb:a.name.localeCompare(b.name,'de'); });
 }
-function ingToStr(i){ return [i.amt,i.unit,i.name].filter(Boolean).join(' ').trim(); }
 function normalizeKey(name){ return name.toLowerCase().replace(/\s+/g,' ').replace(/en$/,'').replace(/n$/,'').replace(/e$/,'').trim(); }
-function escAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function escAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;'); }
 function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(showToast._t); showToast._t=setTimeout(()=>t.classList.remove('show'),2200); }
 
 // ── Decimal-safe number parsing ───────────────────────────────────────────────
 function parseAmt(str){
@@ -773,12 +968,16 @@ function combineIngredients(allIng){
     let qty='';
     if(g.items.length===1){ qty=[g.items[0].amt,g.items[0].unit].filter(Boolean).join(' '); }
     else if(g.amount>0){ qty=fmtAmt(g.amount)+(g.unit?' '+g.unit:''); }
-    return {id:nextItemId++,qty,name:g.name,meals:g.meals,combined:g.meals.length>1,manual:false,checked:false,dayContributions:{}};
+    return {id:newId(),qty,name:g.name,meals:g.meals,combined:g.meals.length>1,manual:false,checked:false,dayContributions:{}};
   });
 }
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
-const TODAY=(()=>{ const d=new Date(); d.setHours(0,0,0,0); return d; })();
+// TODAY wird bei jedem Rendern und beim Zurückholen der App neu bestimmt
+// (eine im Hintergrund pausierte PWA überlebt sonst Mitternacht mit falschem "Heute")
+function _calcToday(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
+let TODAY=_calcToday();
+function refreshToday(){ const t=_calcToday(); if(t.getTime()!==TODAY.getTime()){ TODAY=t; return true; } return false; }
 function addDays(d,n){ const r=new Date(d); r.setDate(r.getDate()+n); return r; }
 function dateKey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function get7Days(){ return Array.from({length:7},(_,i)=>addDays(TODAY,i)); }
@@ -790,13 +989,14 @@ function dayLabelForDate(d){
   return['So','Mo','Di','Mi','Do','Fr','Sa'][d.getDay()];
 }
 function dayDateStr(d){ return d.toLocaleDateString('de-DE',{day:'numeric',month:'short'}); }
-function dayNumStr(d){ return String(d.getDate()); }
-function dayWdStr(d){ return ['So','Mo','Di','Mi','Do','Fr','Sa'][d.getDay()]; }
 
 // ── Wochenplaner ──────────────────────────────────────────────────────────────
+let _plannerDirty=false;
 function renderWeekPlanner(){
   const card=document.getElementById('week-card');
   if(!card)return;
+  refreshToday();
+  _plannerDirty=false;
 
   const futureDays=get7Days();
 
@@ -838,13 +1038,16 @@ function renderDayRowHtml(dk, date, isPast){
     const mls=plan.meals||[];
     contentHtml=mls.length>0
       ? mls.map((m,mi)=>{
-          const c=fColor(m.folder);
+          // Name/Ordner live aus dem Rezept (Umbenennen wirkt sofort), sonst gespeicherter Stand
+          const live=meals.find(x=>x.id===jsId(m.mealId));
+          const name=live?live.name:m.name, folder=live?live.folder:m.folder;
+          const c=fColor(folder);
           const dot=c?`<div class="meal-dot" style="background:${c}"></div>`:`<div class="meal-dot" style="background:transparent;width:0;margin:0"></div>`;
-          return `<div class="meal-line${mi>0?' second':''}">${dot}<div class="meal-name-text">${escHtml(m.name)}</div></div>`;
+          return `<div class="meal-line${mi>0?' second':''}">${dot}<div class="meal-name-text">${escHtml(name)}</div></div>`;
         }).join('')
       : `<div class="day-empty">Tippen zum Bearbeiten</div>`;
   } else {
-    const sp=SPECIAL.find(s=>s.key===plan.type);
+    const sp=SPECIAL.find(s=>s.key===plan.type)||{icon:'•',label:plan.type,sub:''};
     contentHtml=`<div class="day-special"><span>${sp.icon}</span><span>${sp.label}</span></div><div class="day-special-sub">${sp.sub}</div>`;
   }
 
@@ -883,9 +1086,9 @@ function renderDayRowHtml(dk, date, isPast){
 }
 
 function markEaten(dk){
+  const p=plannedDays[dk]; if(!p) return;
   _mealsChanged=true;
-  if(plannedDays[dk]){ plannedDays[dk].eaten=true; }
-  saveState(); renderWeekPlanner();
+  commit({['plannedDays/'+dk]: planEntity({...p, eaten:true})});
 }
 
 // ── Drag & Drop ───────────────────────────────────────────────────────────────
@@ -898,7 +1101,7 @@ function attachDragHandlers(){
     const dk=row.dataset.dk;
     if(!dk)return;
     row.draggable=true;
-    row.addEventListener('dragstart', e=>{ _dragSrc=dk; e.dataTransfer.effectAllowed='move'; setTimeout(()=>row.style.opacity='0.4',0); });
+    row.addEventListener('dragstart', e=>{ _dragSrc=dk; _isDragging=true; e.dataTransfer.effectAllowed='move'; setTimeout(()=>row.style.opacity='0.4',0); });
     row.addEventListener('dragend',   ()=>{ row.style.opacity=''; _clearDragUI(); });
     row.addEventListener('dragover',  e=>{ e.preventDefault(); _highlightRow(dk,row); });
     row.addEventListener('dragleave', ()=>row.classList.remove('drag-over'));
@@ -921,7 +1124,8 @@ function _highlightRow(dk, row){
 }
 function _clearDragUI(){
   document.querySelectorAll('.day-row.drag-over').forEach(r=>r.classList.remove('drag-over'));
-  _dragSrc=null; _dragOver=null;
+  _dragSrc=null; _dragOver=null; _isDragging=false;
+  if(_plannerDirty) renderWeekPlanner();
 }
 
 function _onTS(e,dk){
@@ -969,34 +1173,41 @@ function _endDrag(){
   if(_ghost){ _ghost.remove(); _ghost=null; }
   document.querySelectorAll('.day-row').forEach(r=>{ r.classList.remove('drag-over'); r.style.opacity=''; });
   _dragSrc=null; _dragOver=null;
+  if(_plannerDirty) renderWeekPlanner();
 }
 function _doSwap(targetDk){
-  if(!_dragSrc||targetDk===_dragSrc){ _endDrag(); return; }
-  const srcPlan=plannedDays[_dragSrc]?{...plannedDays[_dragSrc]}:null;
-  const tgtPlan=plannedDays[targetDk]?{...plannedDays[targetDk]}:null;
-  if(srcPlan) srcPlan.eaten=false;
-  if(tgtPlan) tgtPlan.eaten=false;
+  const src=_dragSrc;
+  if(!src||targetDk===src){ _endDrag(); return; }
+  const srcPlan=plannedDays[src]?{...plannedDays[src], eaten:false}:null;
+  const tgtPlan=plannedDays[targetDk]?{...plannedDays[targetDk], eaten:false}:null;
+  const ops={};
+  // Zutaten-Beiträge in der Einkaufsliste wandern mit dem Tag
   currentList.forEach(item=>{
-    if(!item.dayContributions) return;
-    const sc=item.dayContributions[_dragSrc];
-    const tc=item.dayContributions[targetDk];
-    if(sc) item.dayContributions[targetDk]=sc; else delete item.dayContributions[targetDk];
-    if(tc) item.dayContributions[_dragSrc]=tc; else delete item.dayContributions[_dragSrc];
+    const dc=item.dayContributions||{}; const sc=dc[src], tc=dc[targetDk];
+    if(!sc&&!tc) return;
+    const it=JSON.parse(JSON.stringify(item)); it.dayContributions=it.dayContributions||{};
+    if(sc) it.dayContributions[targetDk]=sc; else delete it.dayContributions[targetDk];
+    if(tc) it.dayContributions[src]=tc; else delete it.dayContributions[src];
+    ops['list/'+it.id]=itemEntity(it);
   });
-  if(srcPlan) plannedDays[targetDk]=srcPlan; else delete plannedDays[targetDk];
-  if(tgtPlan) plannedDays[_dragSrc]=tgtPlan; else delete plannedDays[_dragSrc];
+  ops['plannedDays/'+targetDk]=planEntity(srcPlan);
+  ops['plannedDays/'+src]=planEntity(tgtPlan);
   _endDrag();
-  saveState(); renderWeekPlanner(); renderShoppingList(); updateBadge();
+  _mealsChanged=true;
+  commit(ops);
   showToast('Tag verschoben ✓');
 }
 
 // ── Day sheet ─────────────────────────────────────────────────────────────────
-let _daySnapPlanned=null, _daySnapList=null, _dayCommitted=false;
+// Das Sheet arbeitet auf einem Entwurf. Erst "Übernehmen" schreibt – und zwar nur
+// diesen einen Tag. Abbrechen verwirft den Entwurf, ohne sonst etwas anzufassen.
+let _dayDraft=null, _dayDraftOrig='null';
 function openDaySheet(dk){
+  refreshToday();
   openDateKey=dk;
-  _daySnapPlanned=JSON.parse(JSON.stringify(plannedDays));
-  _daySnapList=JSON.parse(JSON.stringify(currentList));
-  _dayCommitted=false;
+  const p=plannedDays[dk];
+  _dayDraft=(p&&!p.eaten)?JSON.parse(JSON.stringify(p)):null;
+  _dayDraftOrig=JSON.stringify(_dayDraft);
   const date=dateFromKey(dk);
   const diff=Math.round((date.getTime()-TODAY.getTime())/86400000);
   let title;
@@ -1017,9 +1228,9 @@ function toggleSheetFolder(key){
 }
 
 function renderSheetBody(dk){
-  const plan=plannedDays[dk];
-  const selectedMeals=(plan&&!plan.eaten&&plan.type==='meal'&&plan.meals)?plan.meals:[];
-  const selectedIds=selectedMeals.map(m=>m.mealId);
+  const plan=_dayDraft;
+  const selectedMeals=(plan&&plan.type==='meal'&&plan.meals)?plan.meals:[];
+  const selectedIds=selectedMeals.map(m=>jsId(m.mealId));
   const atMax=selectedIds.length>=2;
 
   const confirmBtn=document.getElementById('btn-confirm');
@@ -1051,10 +1262,9 @@ function renderSheetBody(dk){
     if(key===NO_FOLDER){
       folderMeals.forEach(m=>{ html+=mealPickRowHtml(m, selectedIds, atMax); });
     } else {
-      const safeKey=key.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       const isOpen=(sheetCollapsedFolders[key]===false);
       const c=fColor(key);
-      html+=`<div class="sheet-folder-header${isOpen?' open':''}" onclick="toggleSheetFolder('${safeKey}')">
+      html+=`<div class="sheet-folder-header${isOpen?' open':''}" data-f="${escAttr(key)}" onclick="toggleSheetFolder(this.dataset.f)">
         <span class="sheet-folder-chevron">▶</span>
         <span class="sheet-folder-dot" style="background:${c}"></span>
         <span class="sheet-folder-name">${escHtml(key)}</span>
@@ -1066,7 +1276,7 @@ function renderSheetBody(dk){
     }
   });
 
-  if(plan){
+  if(plannedDays[dk]){
     html+=`<div class="clear-row" onclick="pickClear()"><span>↩</span><span>Eintrag entfernen</span></div>`;
   }
   document.getElementById('sheet-body').innerHTML=html;
@@ -1079,7 +1289,7 @@ function mealPickRowHtml(m, selectedIds, atMax){
   const subLabel=isSecond?'2. Gericht':isFirst&&selectedIds.length>1?'1. Gericht':'';
   const c=fColor(m.folder);
   const dot=c?`<span class="pick-dot" style="background:${c}"></span>`:'';
-  return `<div class="meal-pick-row" onclick="${isDisabled?'':'pickMeal('+m.id+')'}" style="${isDisabled?'opacity:0.35':''}">
+  return `<div class="meal-pick-row" onclick="${isDisabled?'':`pickMeal('${jsId(m.id)}')`}" style="${isDisabled?'opacity:0.35':''}">
     <div class="pick-checkbox${isFirst?' checked':isSecond?' second-checked':''}"></div>
     ${dot}
     <div class="pick-name">${escHtml(m.name)}</div>
@@ -1088,141 +1298,138 @@ function mealPickRowHtml(m, selectedIds, atMax){
 }
 
 function pickMeal(mealId){
-  const plan=plannedDays[openDateKey];
+  mealId=jsId(mealId);
+  const plan=_dayDraft;
   const current=(plan&&plan.type==='meal'&&plan.meals)?[...plan.meals]:[];
-  const idx=current.findIndex(m=>m.mealId===mealId);
+  const idx=current.findIndex(m=>jsId(m.mealId)===mealId);
   if(idx>=0){
     current.splice(idx,1);
-    if(current.length===0) delete plannedDays[openDateKey];
-    else plannedDays[openDateKey]={...plan,meals:current};
+    _dayDraft=current.length?{...plan, meals:current}:null;
   } else if(current.length<2){
-    const m=meals.find(x=>x.id===mealId);
-    current.push({mealId,name:m.name,folder:m.folder||''});
-    plannedDays[openDateKey]={type:'meal',meals:current,inList:(plan&&plan.inList)||false};
+    const m=meals.find(x=>x.id===mealId); if(!m) return;
+    current.push({mealId, name:m.name, folder:m.folder||''});
+    _dayDraft={type:'meal', meals:current, inList:!!(plan&&plan.type==='meal'&&plan.inList)};
   }
-  renderSheetBody(openDateKey); renderWeekPlanner();
+  renderSheetBody(openDateKey);
 }
 
 function pickSpecial(key){
-  const plan=plannedDays[openDateKey];
-  if(plan&&plan.inList) _removeDayContributions(openDateKey);
-  plannedDays[openDateKey]={type:key,inList:false};
-  renderSheetBody(openDateKey); renderWeekPlanner();
+  _dayDraft={type:key, inList:false};
+  renderSheetBody(openDateKey);
 }
 
-function confirmDaySheet(){ _dayCommitted=true; _mealsChanged=true; saveState(); closeDaySheet(); renderWeekPlanner(); }
+function confirmDaySheet(){
+  const dk=openDateKey; if(!dk){ closeDaySheet(); return; }
+  // Nichts verändert → nichts schreiben (sonst würde eine zwischenzeitliche Änderung
+  // vom anderen Gerät an diesem Tag grundlos überschrieben)
+  if(JSON.stringify(_dayDraft)===_dayDraftOrig){ closeDaySheet(); return; }
+  const old=plannedDays[dk]||null;
+  const draft=_dayDraft;
+  const ops={['plannedDays/'+dk]: planEntity(draft)};
+  if(old && old.inList && (!draft || draft.type!=='meal')) Object.assign(ops, contributionRemovalOps(dk));
+  _mealsChanged=true;
+  closeDaySheet();
+  commit(ops);
+}
 
 function pickClear(){
-  _dayCommitted=true;
+  const dk=openDateKey; if(!dk) return;
+  const old=plannedDays[dk];
+  const ops={['plannedDays/'+dk]: null};
+  if(old && old.inList) Object.assign(ops, contributionRemovalOps(dk));
   _mealsChanged=true;
-  const dk=openDateKey; if(!dk)return;
-  const plan=plannedDays[dk];
-  if(plan&&plan.inList) _removeDayContributions(dk);
-  delete plannedDays[dk];
-  closeDaySheet(); saveState(); renderWeekPlanner(); renderShoppingList(); updateBadge();
+  closeDaySheet();
+  commit(ops);
 }
 
 function clearDay(dk){
+  const old=plannedDays[dk]; if(!old) return;
+  const ops={['plannedDays/'+dk]: null};
+  if(old.inList) Object.assign(ops, contributionRemovalOps(dk));
   _mealsChanged=true;
-  const plan=plannedDays[dk]; if(!plan)return;
-  if(plan.inList) _removeDayContributions(dk);
-  delete plannedDays[dk];
-  saveState(); renderWeekPlanner(); renderShoppingList(); updateBadge();
+  commit(ops);
 }
 
 function closeDaySheet(){
-  if(!_dayCommitted && _daySnapPlanned){
-    // Abbrechen / außerhalb tippen: alle Änderungen verwerfen
-    plannedDays=_daySnapPlanned;
-    currentList=_daySnapList;
-    renderWeekPlanner(); renderShoppingList(); updateBadge();
-  }
-  _daySnapPlanned=null; _daySnapList=null; _dayCommitted=false;
-  document.getElementById('day-overlay').classList.remove('open'); openDateKey=null;
+  _dayDraft=null; _dayDraftOrig='null'; openDateKey=null;
+  document.getElementById('day-overlay').classList.remove('open');
 }
 function overlayClick(e){ if(e.target===document.getElementById('day-overlay')) closeDaySheet(); }
 
 // ── List integration ──────────────────────────────────────────────────────────
-function _removeDayContributions(dk){
-  currentList=currentList.filter(item=>{
-    if(!item.dayContributions||!item.dayContributions[dk])return true;
-    const contrib=item.dayContributions[dk];
-    delete item.dayContributions[dk];
-    const {amt:existAmt,unit:existUnit}=parseQtyStr(item.qty);
+// Welche Listen-Einträge ändern sich, wenn die Zutaten eines Tages wieder abgezogen werden?
+function contributionRemovalOps(dk){
+  const ops={};
+  currentList.forEach(item=>{
+    if(!item.dayContributions||!item.dayContributions[dk]) return;
+    const it=JSON.parse(JSON.stringify(item));
+    const contrib=it.dayContributions[dk];
+    delete it.dayContributions[dk];
+    const {amt:existAmt,unit:existUnit}=parseQtyStr(it.qty);
+    const hasOther=Object.keys(it.dayContributions).length>0;
+    let keep=true;
     if(contrib.qty>0&&existAmt>0&&contrib.unit===existUnit){
       const newAmt=existAmt-contrib.qty;
-      const hasOther=Object.keys(item.dayContributions).length>0;
-      if(newAmt<=0&&!hasOther&&!item.manual)return false;
-      if(newAmt>0) item.qty=fmtAmt(newAmt)+(existUnit?' '+existUnit:'');
-      else if(!hasOther&&!item.manual)return false;
-    } else {
-      const hasOther=Object.keys(item.dayContributions).length>0;
-      if(!hasOther&&!item.manual&&!existAmt)return false;
-    }
-    if(contrib.meals){ contrib.meals.forEach(mn=>{ const i=item.meals.indexOf(mn); if(i>=0)item.meals.splice(i,1); }); }
-    item.combined=item.meals.length>1;
-    return true;
+      if(newAmt<=0&&!hasOther&&!it.manual) keep=false;
+      else if(newAmt>0) it.qty=fmtAmt(newAmt)+(existUnit?' '+existUnit:'');
+    } else if(!hasOther&&!it.manual&&!existAmt) keep=false;
+    if(keep){
+      if(contrib.meals) arr(contrib.meals).forEach(mn=>{ const i=it.meals.indexOf(mn); if(i>=0)it.meals.splice(i,1); });
+      it.combined=it.meals.length>1;
+      ops['list/'+it.id]=itemEntity(it);
+    } else ops['list/'+it.id]=null;
   });
+  return ops;
 }
 
 function addDayToList(dk){
-  _mealsChanged=true; _shoppingChanged=true;
   const plan=plannedDays[dk];
   if(!plan||plan.type!=='meal'||!plan.meals||plan.meals.length===0)return;
+  _mealsChanged=true; _shoppingChanged=true;
   const allIng=[];
-  plan.meals.forEach(pm=>{ const m=meals.find(x=>x.id===pm.mealId); if(!m)return; m.ingredients.forEach(ing=>allIng.push({ingredient:ing,meal:m.name})); });
+  plan.meals.forEach(pm=>{ const m=meals.find(x=>x.id===jsId(pm.mealId)); if(!m)return; m.ingredients.forEach(ing=>allIng.push({ingredient:ing,meal:m.name})); });
   const dayItems=combineIngredients(allIng);
+  const work=currentList.map(i=>JSON.parse(JSON.stringify(i)));
+  const ops={};
   dayItems.forEach(newItem=>{
     const key=normalizeKey(newItem.name);
-    const existing=currentList.find(e=>normalizeKey(e.name)===key);
+    const existing=work.find(e=>normalizeKey(e.name)===key);
     const {amt:newAmt,unit:newUnit}=parseQtyStr(newItem.qty);
     if(existing){
       const {amt:existAmt,unit:existUnit}=parseQtyStr(existing.qty);
       if(newAmt>0&&existAmt>0&&newUnit===existUnit){
-        const sum=newAmt+existAmt;
-        existing.qty=fmtAmt(sum)+(existUnit?' '+existUnit:'');
+        existing.qty=fmtAmt(newAmt+existAmt)+(existUnit?' '+existUnit:'');
       }
       newItem.meals.forEach(mn=>{ if(!existing.meals.includes(mn))existing.meals.push(mn); });
       existing.combined=existing.meals.length>1;
-      if(!existing.dayContributions)existing.dayContributions={};
+      existing.dayContributions=existing.dayContributions||{};
       existing.dayContributions[dk]={qty:newAmt,unit:newUnit,meals:newItem.meals};
+      ops['list/'+existing.id]=itemEntity(existing);
     } else {
       newItem.dayContributions={[dk]:{qty:newAmt,unit:newUnit,meals:newItem.meals}};
-      currentList.push(newItem);
+      work.push(newItem);
+      ops['list/'+newItem.id]=itemEntity(newItem);
     }
   });
-  currentList=sortByCategory(currentList);
-  plan.inList=true;
-  saveState(); renderWeekPlanner(); renderShoppingList(); updateBadge();
+  ops['plannedDays/'+dk]=planEntity({...plan, inList:true});
+  commit(ops);
   showToast('Zur Einkaufsliste hinzugefügt ✓');
 }
 
 function removeDayFromList(dk){
+  const plan=plannedDays[dk];
   _mealsChanged=true; _shoppingChanged=true;
-  _removeDayContributions(dk);
-  if(plannedDays[dk]) plannedDays[dk].inList=false;
-  saveState(); renderWeekPlanner(); renderShoppingList(); updateBadge();
+  const ops=contributionRemovalOps(dk);
+  if(plan) ops['plannedDays/'+dk]=planEntity({...plan, inList:false});
+  commit(ops);
   showToast('Vom Tag entfernt');
 }
 
 // ── Shopping list ─────────────────────────────────────────────────────────────
+function findItem(id){ return currentList.find(i=>i.id===id); }
 function toggleHideChecked(){
   hideChecked=!hideChecked; LS.save('hideChecked',hideChecked);
   renderShoppingList();
-}
-
-const _UNIT_OPTS=['','Stück','g','kg','ml','l','EL','TL','Pck.','Bund','Dose'];
-function _addFormHtml(){
-  return `<div class="add-form">
-    <div class="add-row1">
-      <input class="field aq" id="new-qty" placeholder="Menge" inputmode="decimal"/>
-      <select class="au" id="new-unit">${_UNIT_OPTS.map(u=>`<option value="${u}">${u||'–'}</option>`).join('')}</select>
-      <button class="aplus" onclick="addItem()">Hinzufügen</button>
-    </div>
-    <div class="add-row2">
-      <input class="field an ingname" id="new-name" placeholder="Artikel eingeben …" autocomplete="off" onkeydown="acKey(event,this);if(!event.defaultPrevented&&event.key==='Enter')addItem()"/>
-    </div>
-  </div>`;
 }
 
 function renderShoppingList(){
@@ -1231,18 +1438,18 @@ function renderShoppingList(){
   const doneCount=currentList.filter(i=>i.checked).length;
 
   if(!currentList.length){
-    el.innerHTML=`<div class="list-card"><div class="empty-state">Noch keine Einträge.<br>Gerichte planen und „+ Liste" tippen.</div></div>${_addFormHtml()}`;
+    el.innerHTML=`<div class="list-card"><div class="empty-state">Noch keine Einträge.<br>Gerichte planen und „+ Liste" tippen.</div></div>`;
     return;
   }
 
   const toolbar=`<div class="toolbar"><span class="count-txt">${currentList.length} Artikel${doneCount?` · ${doneCount} erledigt`:''}</span><button class="toggle-checked" onclick="toggleHideChecked()">${hideChecked?'Abgehakte anzeigen':'Abgehakte ausblenden'}</button></div>`;
+  const hint=`<div class="hint-row">Abgehakte Artikel werden nach 1 Stunde automatisch entfernt</div>`;
 
   if(!visible.length){
-    el.innerHTML=toolbar+`<div class="list-card"><div class="empty-state">Alle Artikel abgehakt! 🎉</div></div>`+`<div class="hint-row">Abgehakte Artikel werden nach 1 Stunde automatisch entfernt</div>`+_addFormHtml();
+    el.innerHTML=toolbar+`<div class="list-card"><div class="empty-state">Alle Artikel abgehakt! 🎉</div></div>`+hint;
     return;
   }
 
-  // group by category
   const groups={};
   visible.forEach(item=>{ const cat=categorize(item.name); if(!groups[cat])groups[cat]=[]; groups[cat].push(item); });
   const order=CATEGORIES.map(c=>c.name);
@@ -1250,80 +1457,91 @@ function renderShoppingList(){
 
   let body='';
   cats.forEach(cat=>{
-    body+=`<div class="sl-cat">${catIcon(cat)} ${cat}</div>`;
+    body+=`<div class="sl-cat">${catIcon(cat)} ${escHtml(cat)}</div>`;
     let rows='';
     groups[cat].forEach(item=>{
-      const i=currentList.indexOf(item);
-      if(editingIdx===i){
+      const id=jsId(item.id);
+      if(editingItemId===item.id){
         const currentCat=categorize(item.name);
         const {amt,unit}=parseQtyStr(item.qty);
         const catOpts=CATEGORIES.map(c=>`<option value="${c.name}"${c.name===currentCat?' selected':''}>${c.name}</option>`).join('');
         rows+=`<div class="edit-card">
           <div class="edit-lab">Menge & Bezeichnung</div>
           <div class="qrow">
-            <input class="field qnum" id="eq-${i}" value="${escAttr(amt||'')}" inputmode="decimal" placeholder="Menge"/>
+            <input class="field qnum" id="eq-edit" value="${escAttr(amt||'')}" inputmode="decimal" placeholder="Menge"/>
             ${unit?`<div class="unit-chip">${escHtml(unit)}</div>`:''}
-            <input class="field qname" id="en-${i}" value="${escAttr(item.name)}" placeholder="Bezeichnung"/>
+            <input class="field qname" id="en-edit" value="${escAttr(item.name)}" placeholder="Bezeichnung"/>
           </div>
           <div class="edit-lab mt">Kategorie</div>
-          <select id="ecat-${i}">${catOpts}</select>
-          <div class="edit-actions"><button class="eb del" onclick="deleteItem(${i})" title="Löschen"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button><button class="eb ok" onclick="saveEdit(${i})">Speichern</button><button class="eb x" onclick="cancelEdit()" title="Abbrechen"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+          <select id="ecat-edit">${catOpts}</select>
+          <div class="edit-actions"><button class="eb del" onclick="deleteItem('${id}')" title="Löschen"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button><button class="eb ok" onclick="saveEdit('${id}')">Speichern</button><button class="eb x" onclick="cancelEdit()" title="Abbrechen"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
         </div>`;
       } else {
         rows+=`<div class="sl-item${item.checked?' checked':''}">
-          <div class="check-circle" onclick="toggleCheck(${i})"><svg viewBox="0 0 12 9"><polyline points="1,4 4.5,8 11,1"/></svg></div>
+          <div class="check-circle" onclick="toggleCheck('${id}')"><svg viewBox="0 0 12 9"><polyline points="1,4 4.5,8 11,1"/></svg></div>
           <div class="sl-name">${escHtml(item.name)}${item.combined?`<span class="sl-origin">aus: ${escHtml(item.meals.join(', '))}</span>`:''}${item.manual&&!item.combined?`<span class="sl-origin">manuell</span>`:''}</div>
           ${item.qty?`<span class="sl-qty">${escHtml(item.qty)}</span>`:''}
-          <span class="sl-edit" onclick="startEdit(${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
+          <span class="sl-edit" onclick="startEdit('${id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
         </div>`;
       }
     });
     body+=`<div class="list-card">${rows}</div>`;
   });
 
-  el.innerHTML=toolbar+body+`<div class="hint-row">Abgehakte Artikel werden nach 1 Stunde automatisch entfernt</div>`+_addFormHtml();
+  el.innerHTML=toolbar+body+hint;
 }
 
-function startEdit(i){ editingIdx=i; renderShoppingList(); setTimeout(()=>{ const e=document.getElementById('en-'+i); if(e)e.focus(); },50); }
-function cancelEdit(){ editingIdx=null; renderShoppingList(); }
-function saveEdit(i){
-  _shoppingChanged=true;
-  const numV=document.getElementById('eq-'+i).value.trim();
-  const name=document.getElementById('en-'+i).value.trim();
+function startEdit(id){ editingItemId=id; renderShoppingList(); setTimeout(()=>{ const e=document.getElementById('en-edit'); if(e)e.focus(); },50); }
+function cancelEdit(){ editingItemId=null; renderShoppingList(); }
+function saveEdit(id){
+  const it=findItem(id);
+  if(!it){ editingItemId=null; renderShoppingList(); showToast('Artikel wurde inzwischen entfernt'); return; }
+  const numV=document.getElementById('eq-edit').value.trim();
+  const name=document.getElementById('en-edit').value.trim();
   if(!name){ alert('Bezeichnung darf nicht leer sein.'); return; }
-  const {unit}=parseQtyStr(currentList[i].qty);
+  const {unit}=parseQtyStr(it.qty);
   const qty=numV?(numV+(unit?' '+unit:'')):(unit||'');
-  const selCat=document.getElementById('ecat-'+i).value;
-  const autoCat=categorize(name);
-  if(selCat && selCat!==autoCat){
-    customCategories[normalizeKey(name)]=selCat;
-  }
-  currentList[i].qty=qty; currentList[i].name=name; editingIdx=null;
-  currentList=sortByCategory(currentList); saveState(); renderShoppingList();
-}
-function toggleCheck(i){
+  const selCat=document.getElementById('ecat-edit').value;
+  const ops={['list/'+id]: itemEntity({...it, qty, name})};
+  const path=catPath(name);
+  if(path && selCat && selCat!==categorize(name)) ops[path]=selCat;
   _shoppingChanged=true;
-  currentList[i].checked=!currentList[i].checked;
-  if(currentList[i].checked) currentList[i].checkedAt=Date.now();
-  else delete currentList[i].checkedAt;
-  saveState(); renderShoppingList();
+  editingItemId=null;
+  commit(ops);
+  renderShoppingList();
 }
+function toggleCheck(id){
+  const it=findItem(id); if(!it) return;
+  _shoppingChanged=true;
+  const checked=!it.checked;
+  commit({['list/'+id]: itemEntity({...it, checked, checkedAt: checked?Date.now():0})});
+}
+// Löscht abgehakte Artikel, die älter als 1 h sind – entschieden wird auf dem
+// Server-Stand (Transaktion), nicht auf einem womöglich veralteten lokalen Stand
 function cleanupCheckedItems(){
-  const ONE_HOUR=3600000;
-  const before=currentList.length;
-  currentList=currentList.filter(i=>!(i.checked&&i.checkedAt&&Date.now()-i.checkedAt>ONE_HOUR));
-  if(currentList.length<before){ saveState(); updateBadge(); renderShoppingList(); }
+  if(!db||!_hydrated) return;
+  const ONE_HOUR=3600000, now=Date.now();
+  currentList.filter(i=>i.checked&&i.checkedAt&&now-i.checkedAt>ONE_HOUR).forEach(i=>{
+    db.ref(ROOT+'/list/'+i.id).transaction(cur=>
+      (cur&&cur.checked&&cur.checkedAt&&Date.now()-cur.checkedAt>ONE_HOUR) ? null : undefined
+    , null, true);
+  });
 }
-function deleteItem(i){ _shoppingChanged=true; currentList.splice(i,1); if(editingIdx===i)editingIdx=null; saveState(); updateBadge(); renderShoppingList(); }
+function deleteItem(id){
+  _shoppingChanged=true;
+  if(editingItemId===id) editingItemId=null;
+  commit({['list/'+id]: null});
+  renderShoppingList();
+}
 function addItem(){
-  const amt=document.getElementById('new-qty').value.trim();
-  const unit=document.getElementById('new-unit').value;
-  const name=document.getElementById('new-name').value.trim();
-  if(!name){ document.getElementById('new-name').focus(); return; }
+  const qEl=document.getElementById('new-qty'), uEl=document.getElementById('new-unit'), nEl=document.getElementById('new-name');
+  const amt=qEl.value.trim(), unit=uEl.value, name=nEl.value.trim();
+  if(!name){ nEl.focus(); return; }
   _shoppingChanged=true;
   const qty=amt&&unit ? amt+' '+unit : (amt||unit);
-  currentList.push({id:nextItemId++,qty,name,meals:[],combined:false,manual:true,checked:false,dayContributions:{}});
-  currentList=sortByCategory(currentList); saveState(); updateBadge(); renderShoppingList();
+  qEl.value=''; uEl.value=''; nEl.value='';
+  acClose();
+  commit({['list/'+newId()]: itemEntity({name, qty, meals:[], combined:false, manual:true, checked:false, dayContributions:{}})});
   checkSonstiges(name);
   setTimeout(()=>{ const e=document.getElementById('new-qty'); if(e)e.focus(); },50);
 }
@@ -1331,9 +1549,13 @@ function clearShoppingList(){
   if(!currentList.length)return;
   if(!confirm('Einkaufsliste leeren?'))return;
   _shoppingChanged=true;
-  currentList=[];
-  Object.values(plannedDays).forEach(p=>{ if(p)p.inList=false; });
-  saveState(); updateBadge(); renderShoppingList(); renderWeekPlanner();
+  // Nur löschen, was hier angezeigt wird – ein gerade auf dem anderen Gerät
+  // hinzugefügter Artikel bleibt erhalten
+  const ops={};
+  currentList.forEach(i=>{ ops['list/'+i.id]=null; });
+  Object.entries(plannedDays).forEach(([dk,p])=>{ if(p&&p.inList) ops['plannedDays/'+dk]=planEntity({...p, inList:false}); });
+  editingItemId=null;
+  commit(ops);
   showToast('Liste geleert');
 }
 function updateBadge(){ const b=document.getElementById('list-badge'); const n=currentList.filter(i=>!i.checked).length; b.textContent=n; b.style.display=n?'inline-flex':'none'; }
@@ -1348,6 +1570,16 @@ function exportList(){
 
 // ── Recipe form ───────────────────────────────────────────────────────────────
 function getFolderList(){ const set=new Set(meals.map(m=>m.folder||'').filter(Boolean)); return [...set].sort((a,b)=>a.localeCompare(b,'de')); }
+function ensureFolderColors(){
+  if(!_hydrated) return;
+  const ops={}, used=Object.values(folderColors);
+  getFolderList().forEach(f=>{
+    if(folderColors[f]) return;
+    const c=_colorForNewFolder(f, used); used.push(c);
+    ops['folderColors/'+encKey(f)]=c;
+  });
+  if(Object.keys(ops).length) commit(ops);
+}
 function updateFolderSelect(cur){
   const sel=document.getElementById('f-folder-select'); if(!sel)return;
   const folders=getFolderList(), inList=folders.includes(cur);
@@ -1374,8 +1606,9 @@ function renderIngList(){
 function addIngRow(){ formIngredients.push({amt:'',unit:'',name:''}); renderIngList(); setTimeout(()=>{ const rows=document.querySelectorAll('.ing-row'); if(rows.length)rows[rows.length-1].querySelector('.ingname').focus(); },50); }
 function removeIngRow(i){ formIngredients.splice(i,1); renderIngList(); }
 function showRecipeForm(mealId){
-  editingMealId=mealId||null;
-  if(mealId){ const m=meals.find(x=>x.id===mealId); document.getElementById('f-name').value=m.name; updateFolderSelect(m.folder||''); formIngredients=m.ingredients.map(x=>({...x})); document.getElementById('form-title').textContent='Rezept bearbeiten'; }
+  const m=mealId!=null?meals.find(x=>x.id===jsId(mealId)):null;
+  editingMealId=m?m.id:null;
+  if(m){ document.getElementById('f-name').value=m.name; updateFolderSelect(m.folder||''); formIngredients=m.ingredients.map(x=>({amt:x.amt||'',unit:x.unit||'',name:x.name||''})); document.getElementById('form-title').textContent='Rezept bearbeiten'; }
   else { document.getElementById('f-name').value=''; updateFolderSelect(''); formIngredients=[{amt:'',unit:'',name:''}]; document.getElementById('form-title').textContent='Neues Rezept'; }
   renderIngList(); document.getElementById('db-view').style.display='none'; document.getElementById('db-quickform').style.display='none'; document.getElementById('db-form').style.display='block';
   setTimeout(()=>document.getElementById('f-name').focus(),50);
@@ -1384,26 +1617,29 @@ function cancelForm(){ editingMealId=null; document.getElementById('db-form').st
 function saveRecipe(){
   const name=document.getElementById('f-name').value.trim();
   if(!name){ alert('Bitte einen Gerichtnamen eingeben.'); return; }
-  const ings=formIngredients.filter(i=>i.name.trim());
+  const ings=formIngredients.filter(i=>(i.name||'').trim());
   if(!ings.length){ alert('Bitte mindestens eine Zutat eingeben.'); return; }
   const folder=getFolderValue();
-  const cleanIngs=ings.map(i=>({amt:i.amt.trim(),unit:i.unit.trim(),name:i.name.trim()}));
-  if(editingMealId){ const idx=meals.findIndex(m=>m.id===editingMealId); if(idx>=0)meals[idx]={id:editingMealId,name,folder,ingredients:cleanIngs}; }
-  else meals.push({id:nextId++,name,folder,ingredients:cleanIngs});
-  ensureFolderColors();
-  saveState(); cancelForm(); renderDbList(); showToast(editingMealId?'Rezept gespeichert':'Rezept hinzugefügt');
+  const cleanIngs=ings.map(i=>({amt:String(i.amt||'').trim(),unit:String(i.unit||'').trim(),name:i.name.trim()}));
+  const wasEdit=!!editingMealId;
+  const id=editingMealId||newId();
+  const ops={['meals/'+id]: mealEntity({name, folder, ingredients:cleanIngs})};
+  if(folder && !folderColors[folder]) ops['folderColors/'+encKey(folder)]=_colorForNewFolder(folder, Object.values(folderColors));
+  commit(ops);
+  cancelForm(); renderDbList(); showToast(wasEdit?'Rezept gespeichert':'Rezept hinzugefügt');
   cleanIngs.forEach(i=>{ if(i.name) checkSonstiges(i.name); });
 }
 function _mealCardHtml(m){
   const c=fColor(m.folder);
   const dot=c?`<span class="recipe-dot" style="background:${c}"></span>`:`<span class="recipe-dot" style="background:transparent"></span>`;
   const n=m.ingredients.length;
+  const id=jsId(m.id);
   return `<div class="recipe">
     ${dot}
     <div class="recipe-body"><div class="recipe-name">${escHtml(m.name)}</div><div class="recipe-meta">${n} Zutat${n!==1?'en':''}</div></div>
     <div class="recipe-acts">
-      <button class="ribtn" onclick="showRecipeForm(${m.id})" title="Bearbeiten"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
-      <button class="ribtn del" onclick="deleteMeal(${m.id})" title="Löschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>
+      <button class="ribtn" onclick="showRecipeForm('${id}')" title="Bearbeiten"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+      <button class="ribtn del" onclick="deleteMeal('${id}')" title="Löschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>
     </div>
   </div>`;
 }
@@ -1414,7 +1650,6 @@ function toggleDbFolder(key){
 function renderDbList(){
   const el=document.getElementById('db-list');
   if(!meals.length){ el.innerHTML='<div class="empty-state">Noch keine Rezepte.</div>'; return; }
-  ensureFolderColors();
   document.getElementById('db-list-title').textContent='Alle Rezepte · '+meals.length;
 
   const folderMap={};
@@ -1425,11 +1660,11 @@ function renderDbList(){
   let html='';
   const renderSection=(key,label,list,withDot)=>{
     const isOpen=(dbCollapsedFolders[key]===true);
-    const safe=key.replace(/'/g,"\\'");
+    const f=escAttr(key);
     const c=withDot?fColor(key):null;
-    const dotHtml=c?`<span class="folder-dot" style="background:${c}" onclick="event.stopPropagation();openRecolor('${safe}')"></span>`:'';
+    const dotHtml=c?`<span class="folder-dot" style="background:${c}" data-f="${f}" onclick="event.stopPropagation();openRecolor(this.dataset.f)"></span>`:'';
     html+=`<div class="db-folder-section">
-      <div class="folder-header${isOpen?' open':''}" onclick="toggleDbFolder('${safe}')">
+      <div class="folder-header${isOpen?' open':''}" data-f="${f}" onclick="toggleDbFolder(this.dataset.f)">
         <span class="folder-chevron">▶</span>
         ${dotHtml}
         <span class="folder-name">${escHtml(label)}</span>
@@ -1446,7 +1681,7 @@ function renderDbList(){
   }
   el.innerHTML=html;
 }
-function deleteMeal(id){ if(!confirm('Rezept löschen?'))return; meals=meals.filter(m=>m.id!==id); saveState(); renderDbList(); showToast('Rezept gelöscht'); }
+function deleteMeal(id){ if(!confirm('Rezept löschen?'))return; commit({['meals/'+jsId(id)]: null}); renderDbList(); showToast('Rezept gelöscht'); }
 
 // ── Ordnerfarbe ändern ────────────────────────────────────────────────────────
 function openRecolor(folder){
@@ -1461,7 +1696,7 @@ function openRecolor(folder){
   document.getElementById('recolor-scrim').classList.add('open');
 }
 function pickRecolor(hex){
-  if(_recolorFolder){ folderColors[_recolorFolder]=hex; saveState(); renderDbList(); renderWeekPlanner(); }
+  if(_recolorFolder) commit({['folderColors/'+encKey(_recolorFolder)]: hex});
   closeRecolor();
 }
 function closeRecolor(){
@@ -1493,18 +1728,17 @@ function renderQuickFormView(){
   el.innerHTML=sortedCats.map(cat=>{
     const items=groups[cat];
     const isOpen=quickFormCollapsed[cat]===true;
-    const safe=cat.replace(/'/g,"\\'");
     return `<div class="db-folder-section">
-      <div class="folder-header${isOpen?' open':''}" onclick="toggleQuickFormSection('${safe}')">
+      <div class="folder-header${isOpen?' open':''}" data-f="${escAttr(cat)}" onclick="toggleQuickFormSection(this.dataset.f)">
         <span class="folder-chevron">▶</span>
         <span style="font-size:15px">${catIcon(cat)}</span>
-        <span class="folder-name">${cat}</span>
+        <span class="folder-name">${escHtml(cat)}</span>
         <span class="folder-count">${items.length}</span>
       </div>
       <div${isOpen?'':' style="display:none"'}>
         ${items.map(item=>`<div class="recipe" style="padding:12px 15px">
           <span class="recipe-name" style="flex:1">${escHtml(item.name)}</span>
-          <button class="btn icon-btn" onclick="removeQuickItem(${item.id})">×</button>
+          <button class="btn icon-btn" onclick="removeQuickItem('${jsId(item.id)}')">×</button>
         </div>`).join('')}
       </div>
     </div>`;
@@ -1517,12 +1751,13 @@ function toggleQuickFormSection(cat){
 function addQuickItem(){
   const input=document.getElementById('quick-new-name');
   const name=input.value.trim(); if(!name) return;
-  quickItems.push({id:nextQuickId++,name});
-  input.value=''; saveState(); renderQuickFormView(); checkSonstiges(name);
+  input.value=''; acClose();
+  commit({['quick/'+newId()]: {name}});
+  renderQuickFormView(); checkSonstiges(name);
   input.focus();
 }
 function removeQuickItem(id){
-  quickItems=quickItems.filter(i=>i.id!==id); saveState(); renderQuickFormView();
+  commit({['quick/'+jsId(id)]: null}); renderQuickFormView();
 }
 
 // ── Merkliste auswählen ───────────────────────────────────────────────────────
@@ -1546,10 +1781,10 @@ function renderQuickBuySheet(){
   cb.textContent=n?`${n} Artikel zur Liste hinzufügen`:'Zur Liste hinzufügen';
   document.getElementById('quickbuy-body').innerHTML=sortedCats.map(cat=>{
     const items=groups[cat];
-    return `<div class="sheet-section-label">${catIcon(cat)} ${cat}</div>`+
+    return `<div class="sheet-section-label">${catIcon(cat)} ${escHtml(cat)}</div>`+
       items.map(item=>{
         const sel=_selectedQuickIds.has(item.id);
-        return `<div class="meal-pick-row" onclick="toggleQuickItem(${item.id})">
+        return `<div class="meal-pick-row" onclick="toggleQuickItem('${jsId(item.id)}')">
           <div class="pick-checkbox${sel?' checked':''}"></div>
           <div class="pick-name">${escHtml(item.name)}</div>
         </div>`;
@@ -1564,13 +1799,13 @@ function addSelectedQuickItems(){
   if(!_selectedQuickIds.size){ showToast('Bitte mindestens einen Artikel auswählen.'); return; }
   _shoppingChanged=true;
   const count=_selectedQuickIds.size;
-  closeQuickBuySheet();
+  const ops={};
   quickItems.filter(i=>_selectedQuickIds.has(i.id)).forEach(item=>{
     const exists=currentList.find(i=>!i.checked&&normalizeKey(i.name)===normalizeKey(item.name));
-    if(!exists) currentList.push({id:nextItemId++,qty:item.qty||'',name:item.name,meals:[],combined:false,manual:true,checked:false,dayContributions:{}});
+    if(!exists) ops['list/'+newId()]=itemEntity({qty:'',name:item.name,meals:[],combined:false,manual:true,checked:false,dayContributions:{}});
   });
-  currentList=sortByCategory(currentList);
-  saveState(); updateBadge(); renderShoppingList();
+  closeQuickBuySheet();
+  commit(ops);
   showToast(count+' Artikel hinzugefügt ✓');
 }
 
@@ -1616,7 +1851,7 @@ function acSearch(input) {
     const isRecipe = item.source === 'recipe';
     const badge = isRecipe
       ? `<span class="ac-recipe-badge">★ Rezept</span>`
-      : `<span class="ac-cat">${item.cat}</span>`;
+      : `<span class="ac-cat">${escHtml(item.cat)}</span>`;
     return `<div class="ac-item${isRecipe?' ac-recipe':''}" data-name="${escAttr(item.name)}" onmousedown="acMouseDown(event)" ontouchstart="acTouchStart(event)"><span class="ac-name">${hl}</span>${badge}</div>`;
   }).join('');
   _acIdx = -1;
@@ -1698,29 +1933,39 @@ function showTab(tab){
 }
 
 // ── Service Worker ────────────────────────────────────────────────────────────
+// Neue Version: sofort neu laden – außer der Nutzer ist gerade mitten in einer
+// Eingabe. Dann beim nächsten Wegwischen der App.
+let _reloadPending=false;
+function _isBusyEditing(){
+  return editingItemId!==null || openDateKey!==null || document.getElementById('db-form').style.display==='block';
+}
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
       .then(() => {
-        if(Notification.permission === 'granted') registerPush();
+        if('Notification' in window && Notification.permission === 'granted') registerPush();
       })
       .catch(()=>{});
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if(!refreshing){ refreshing=true; window.location.reload(); }
+      if(refreshing) return;
+      if(_isBusyEditing() && !document.hidden){ _reloadPending=true; return; }
+      refreshing=true; window.location.reload();
     });
   });
 }
 
-// ── Sichtbarkeits-Listener: Push senden wenn App im Hintergrund ──
+// ── Sichtbarkeit: Push beim Verlassen, "Heute" beim Zurückkommen neu bestimmen ──
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     if (_mealsChanged || _shoppingChanged) {
       clearTimeout(_visibilityTimer); _visibilityTimer = null;
       sendPushToOthers();
     }
+    if (_reloadPending) { _reloadPending=false; window.location.reload(); }
   } else {
     clearTimeout(_visibilityTimer); _visibilityTimer = null;
+    if (refreshToday()) rebuildAndRender(true);
   }
 });
 window.addEventListener('pagehide', () => {
@@ -1790,16 +2035,25 @@ document.addEventListener('focusin', e => {
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+// Sofort den letzten bekannten Stand zeigen (auch offline), dann mit dem Server abgleichen.
+// Beim allerersten Start dieser Version wird der alte lokale Cache übernommen.
+(function boot(){
+  let cached=LS.load('state2', null);
+  if(!cached){
+    cached=storeFromV1({ meals:LS.load('meals',DEFAULT_MEALS), currentList:LS.load('currentList',[]),
+      plannedDays:LS.load('plannedDays',{}), customCategories:LS.load('customCategories',{}),
+      quickItems:LS.load('quickItems',[]), folderColors:LS.load('folderColors',{}) });
+  }
+  _store=normalizeStore(cached);
+})();
+window.__v2=true;
 document.getElementById('version-label').textContent=APP_VERSION;
 updateBellIcon();
 _setShellH();
 requestAnimationFrame(_setShellH);
-ensureFolderColors();
-cleanupCheckedItems();
-setInterval(cleanupCheckedItems, 5*60*1000);
-renderWeekPlanner();
-renderShoppingList();
-updateBadge();
+rebuildAndRender(true);
+updateSyncStatus();
+setInterval(()=>{ if(_hydrated&&_connected) cleanupCheckedItems(); }, 5*60*1000);
 initSync();
 </script>
 </body>

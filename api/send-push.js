@@ -26,11 +26,11 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Missing subscription or message' });
   }
 
+  // Kein icon/badge mitsenden: '/icon-192.png' zeigte auf die Domain-Wurzel statt auf
+  // /mahlzeiten-planer/. Der Service Worker setzt das richtige, relative Icon selbst.
   const payload = JSON.stringify({
-    title: 'Mahlzeiten-Planer',
+    title: 'MealsApp',
     body: message,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
     tag: 'mahlzeiten-update',
     renotify: false
   });

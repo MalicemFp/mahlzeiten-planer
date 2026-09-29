@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mealsapp-v46';
+const CACHE_NAME = 'mealsapp-v47';
 const ASSETS = [
   './',
   './index.html',
@@ -78,7 +78,8 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request).then(cached => {
       return cached || fetch(event.request).then(response => {
-        if (response.ok && event.request.url.startsWith(self.location.origin)) {
+        // Eigene Dateien + das versionierte Firebase-SDK cachen (App startet so auch offline mit Sync-Engine)
+        if (response.ok && (event.request.url.startsWith(self.location.origin) || event.request.url.startsWith('https://www.gstatic.com/firebasejs/'))) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
         }
